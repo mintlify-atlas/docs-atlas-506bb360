@@ -1,0 +1,344 @@
+---
+title: "Equity Price"
+description: "Price data commands for equities — real-time quotes, NBBO, historical OHLCV, performance, and market-wide snapshots."
+keywords: ["equity", "price", "historical", "quote", "nbbo", "performance", "screener", "profile"]
+---
+
+Commands for retrieving equity price data, company profiles, and market-wide snapshots. All commands are accessible via `obb.equity` and its `price` sub-namespace.
+
+<Note>
+  Every command accepts a `provider` argument that selects the data source. Available providers vary per command. When `provider` is omitted, the platform uses your configured default.
+</Note>
+
+---
+
+## Price commands
+
+### `obb.equity.price.historical`
+
+Get historical OHLCV price data for a given stock.
+
+**REST path:** `GET /api/v1/equity/price/historical`
+
+**Providers:** `fmp`, `intrinio`, `tiingo`, `yfinance`, `cboe`, `tmx`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol (e.g. `AAPL`). Converted to uppercase automatically. Accepts comma-separated values for multiple symbols on supported providers.
+</ParamField>
+
+<ParamField query="start_date" type="string">
+  Start date of the data in `YYYY-MM-DD` format. Defaults to provider-specific lookback.
+</ParamField>
+
+<ParamField query="end_date" type="string">
+  End date of the data in `YYYY-MM-DD` format. Defaults to the most recent trading day.
+</ParamField>
+
+<ParamField query="interval" type="string" default="1d">
+  Data frequency interval. Common values: `1m`, `5m`, `15m`, `30m`, `1h`, `1d`, `1W`, `1M`. Availability depends on the provider.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use. See provider list above.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# Daily historical data for Apple
+result = obb.equity.price.historical(symbol="AAPL", provider="fmp")
+
+# Intraday data via Intrinio
+result = obb.equity.price.historical(
+    symbol="AAPL",
+    interval="1d",
+    provider="intrinio",
+    limit=5,
+)
+
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/price/historical?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `date`, `open`, `high`, `low`, `close`, `volume`, `vwap`
+
+---
+
+### `obb.equity.price.quote`
+
+Get the latest quote for a given stock. Includes bid, ask, last price, volume, and intraday OHLC.
+
+**REST path:** `GET /api/v1/equity/price/quote`
+
+**Providers:** `fmp`, `intrinio`, `tradier`, `cboe`, `tmx`, `yfinance`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol (e.g. `AAPL`). Accepts comma-separated values for multiple symbols.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.price.quote(symbol="AAPL", provider="fmp")
+print(result.results[0].last_price)
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/price/quote?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `symbol`, `bid`, `bid_size`, `ask`, `ask_size`, `last_price`, `last_size`, `open`, `high`, `low`, `close`, `volume`, `prev_close`, `change`, `change_percent`, `year_high`, `year_low`
+
+---
+
+### `obb.equity.price.nbbo`
+
+Get the National Best Bid and Offer (NBBO) for a given stock. Returns the consolidated best bid and ask across all exchanges.
+
+**REST path:** `GET /api/v1/equity/price/nbbo`
+
+**Providers:** `intrinio`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol (e.g. `AAPL`).
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.price.nbbo(symbol="AAPL", provider="intrinio")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/price/nbbo?symbol=AAPL&provider=intrinio"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `ask_exchange`, `ask`, `ask_size`, `bid_size`, `bid`, `bid_exchange`
+
+---
+
+### `obb.equity.price.performance`
+
+Get price performance data for a given stock. Returns percentage price changes across various time windows.
+
+**REST path:** `GET /api/v1/equity/price/performance`
+
+**Providers:** `fmp`, `finviz`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol. Accepts comma-separated values.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.price.performance(symbol="AAPL", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/price/performance?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `symbol`, `name`, `price`, `change`, `percent_change`, `volume`
+
+---
+
+## Equity commands
+
+### `obb.equity.search`
+
+Search for a stock by symbol, CIK, LEI, or company name.
+
+**REST path:** `GET /api/v1/equity/search`
+
+**Providers:** `intrinio`, `nasdaq`, `sec`, `tmx`, `tradier`
+
+<ParamField query="query" type="string">
+  Search query string. Can be a ticker symbol, company name, CIK, or LEI.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# Search by company name
+result = obb.equity.search(query="AAPL", is_symbol=False, provider="nasdaq")
+
+# Browse all listings
+result = obb.equity.search(provider="intrinio")
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/search?query=AAPL&provider=nasdaq"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.screener`
+
+Screen for companies meeting various criteria, including market cap, price, beta, volume, and dividend yield.
+
+**REST path:** `GET /api/v1/equity/screener`
+
+**Providers:** `fmp`, `finviz`
+
+<ParamField query="provider" type="string" required>
+  Data provider to use. Each provider exposes a different set of filter parameters via `extra_params`.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.screener(provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/screener?provider=fmp"
+```
+
+</CodeGroup>
+
+<Tip>
+  Provider-specific filter parameters (e.g. `market_cap_min`, `beta_min`) can be passed as extra keyword arguments in Python or as query parameters in the REST API.
+</Tip>
+
+---
+
+### `obb.equity.profile`
+
+Get general information about a company, including name, industry, sector, price data, and identifiers.
+
+**REST path:** `GET /api/v1/equity/profile`
+
+**Providers:** `fmp`, `intrinio`, `yfinance`, `nasdaq`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol (e.g. `AAPL`).
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.profile(symbol="AAPL", provider="fmp")
+info = result.results[0]
+print(info.name, info.sector, info.industry_category)
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/profile?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `symbol`, `name`, `cik`, `cusip`, `isin`, `lei`, `legal_name`, `stock_exchange`, `sic`, `sector`, `industry_category`, `industry_group`, `ceo`, `company_url`, `employees`, `hq_country`
+
+---
+
+### `obb.equity.market_snapshots`
+
+Get an updated equity market snapshot with price data for thousands of stocks.
+
+**REST path:** `GET /api/v1/equity/market_snapshots`
+
+**Providers:** `fmp`, `intrinio`
+
+<ParamField query="provider" type="string" required>
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.market_snapshots(provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/market_snapshots?provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.historical_market_cap`
+
+Get the historical market capitalization for a given ticker symbol.
+
+**REST path:** `GET /api/v1/equity/historical_market_cap`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol (e.g. `AAPL`).
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.historical_market_cap(symbol="AAPL", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/historical_market_cap?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>

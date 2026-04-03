@@ -1,0 +1,637 @@
+---
+title: "Economy"
+description: "Access macroeconomic data including GDP, CPI, unemployment, interest rates, trade statistics, and more from providers such as FRED, OECD, IMF, and EconDB."
+keywords: ["economy", "GDP", "CPI", "unemployment", "interest rates", "FRED", "OECD", "IMF", "econdb", "macroeconomics"]
+---
+
+The `obb.economy` namespace provides access to a broad range of macroeconomic data. Commands cover consumer prices, labor markets, GDP, trade flows, central bank activity, surveys, and global shipping — sourced from authoritative providers including FRED, OECD, IMF, EconDB, and the Federal Reserve.
+
+<CardGroup cols={2}>
+  <Card title="Economic indicators" icon="chart-line" href="#indicators">
+    Country-level indicators and profiles from EconDB and IMF
+  </Card>
+  <Card title="GDP" icon="building-columns" href="#gdp">
+    Nominal, real, and forecasted GDP by country
+  </Card>
+  <Card title="Consumer prices" icon="tags" href="#cpi">
+    CPI, PCE, and retail price data
+  </Card>
+  <Card title="Surveys" icon="clipboard" href="#surveys">
+    BLS, SLOOS, University of Michigan, and manufacturing surveys
+  </Card>
+</CardGroup>
+
+---
+
+## Indicators
+
+### `obb.economy.indicators`
+
+Get economic indicators by country and indicator symbol. Supports EconDB's indicator codes as well as IMF dataflows.
+
+<CodeGroup>
+
+```python EconDB — single indicator
+res = obb.economy.indicators(provider="econdb", symbol="PCOCO")
+```
+
+```python EconDB — CPI for multiple countries
+res = obb.economy.indicators(
+    symbol="CPI",
+    country="united_states,jp",
+    provider="econdb",
+)
+```
+
+```python EconDB — main indicators bundle
+res = obb.economy.indicators(
+    provider="econdb",
+    symbol="main",
+    country="eu",
+)
+```
+
+```python IMF — gold reserves by country
+res = obb.economy.indicators(
+    provider="imf",
+    symbol="IL::RGV_REVS",
+    country="*",
+    frequency="month",
+    limit=1,
+    start_date="2025-09-30",
+)
+```
+
+</CodeGroup>
+
+<Note>
+Use `obb.economy.available_indicators` to browse all supported indicator codes before querying.
+</Note>
+
+### `obb.economy.available_indicators`
+
+List all economic indicators available from a given provider, along with metadata such as unit and frequency.
+
+```python
+res = obb.economy.available_indicators(provider="econdb")
+```
+
+### `obb.economy.country_profile`
+
+Get a snapshot of country-level statistics and economic indicators in a single call.
+
+<CodeGroup>
+
+```python Single country
+res = obb.economy.country_profile(provider="econdb", country="united_kingdom")
+```
+
+```python Multiple countries — full history
+res = obb.economy.country_profile(
+    country="united_states,jp",
+    latest=False,
+    provider="econdb",
+)
+```
+
+</CodeGroup>
+
+---
+
+## GDP
+
+### `obb.economy.gdp.nominal`
+
+Nominal GDP by country. Filter by units (total or per capita) and frequency.
+
+<CodeGroup>
+
+```python Default
+res = obb.economy.gdp.nominal(provider="oecd")
+```
+
+```python Per capita, all countries, annual
+res = obb.economy.gdp.nominal(
+    units="capita",
+    country="all",
+    frequency="annual",
+    provider="oecd",
+)
+```
+
+</CodeGroup>
+
+### `obb.economy.gdp.real`
+
+Real GDP data adjusted for inflation.
+
+<CodeGroup>
+
+```python OECD default
+res = obb.economy.gdp.real(provider="oecd")
+```
+
+```python EconDB — multiple countries
+res = obb.economy.gdp.real(
+    country="united_states,germany,japan",
+    provider="econdb",
+)
+```
+
+</CodeGroup>
+
+### `obb.economy.gdp.forecast`
+
+Forward-looking GDP projections, including per-capita options and annual or quarterly frequency.
+
+```python
+res = obb.economy.gdp.forecast(
+    country="united_states,germany,france",
+    frequency="annual",
+    units="capita",
+    provider="oecd",
+)
+```
+
+---
+
+## Consumer prices
+
+### `obb.economy.cpi`
+
+Consumer Price Index (CPI) data by country. Apply transformations for year-over-year or period comparisons.
+
+<CodeGroup>
+
+```python FRED — multiple countries
+res = obb.economy.cpi(country="japan,china,turkey", provider="fred")
+```
+
+```python OECD — period change
+res = obb.economy.cpi(
+    country="united_states,united_kingdom",
+    transform="period",
+    provider="oecd",
+)
+```
+
+```python IMF — CPI basket weightings
+res = obb.economy.cpi(
+    provider="imf",
+    country="CAN",
+    transform="weight_percent",
+    expenditure="all",
+    limit=1,
+)
+```
+
+</CodeGroup>
+
+### `obb.economy.pce`
+
+Personal Consumption Expenditures (PCE) reports from FRED, including the PCE price index.
+
+```python
+res = obb.economy.pce(
+    provider="fred",
+    date="2024-05-01,2024-04-01,2023-05-01",
+    category="pce_price_index",
+)
+```
+
+### `obb.economy.retail_prices`
+
+Average retail prices for common consumer items from FRED, with optional regional and category filtering.
+
+<CodeGroup>
+
+```python Eggs — northeast region
+res = obb.economy.retail_prices(
+    item="eggs",
+    region="northeast",
+    provider="fred",
+)
+```
+
+```python Meats — year-over-year change
+res = obb.economy.retail_prices(
+    item="meats",
+    transform="pc1",
+    provider="fred",
+)
+```
+
+</CodeGroup>
+
+---
+
+## Interest rates and monetary policy
+
+### `obb.economy.interest_rates`
+
+Country-level interest rates from OECD: overnight (immediate), short (3-month), or long (10-year).
+
+<CodeGroup>
+
+```python Short-term rates — all countries, quarterly
+res = obb.economy.interest_rates(
+    provider="oecd",
+    country="all",
+    duration="immediate",
+    frequency="quarter",
+)
+```
+
+```python Long-term rates — UK and Germany
+res = obb.economy.interest_rates(
+    duration="long",
+    country="united_kingdom,germany",
+    frequency="monthly",
+    provider="oecd",
+)
+```
+
+</CodeGroup>
+
+### `obb.economy.money_measures`
+
+M1 and M2 money supply measures and their components from the Federal Reserve's H.6 release.
+
+```python
+res = obb.economy.money_measures(provider="federal_reserve")
+res_unadjusted = obb.economy.money_measures(adjusted=False, provider="federal_reserve")
+```
+
+### `obb.economy.central_bank_holdings`
+
+Balance sheet holdings of a central bank, including Treasuries and agency securities.
+
+<CodeGroup>
+
+```python Latest Treasury holdings
+res = obb.economy.central_bank_holdings(provider="federal_reserve")
+```
+
+```python Historical summary
+res = obb.economy.central_bank_holdings(
+    provider="federal_reserve",
+    summary=True,
+)
+```
+
+```python Agency debt as of a historical date
+res = obb.economy.central_bank_holdings(
+    provider="federal_reserve",
+    holding_type="agency_debts",
+)
+```
+
+</CodeGroup>
+
+### `obb.economy.fomc_documents`
+
+FOMC statements, minutes, and other Federal Reserve policy documents by year and type.
+
+```python
+res = obb.economy.fomc_documents(
+    provider="federal_reserve",
+    year=2022,
+    document_type="minutes",
+)
+```
+
+---
+
+## Labor market
+
+### `obb.economy.unemployment`
+
+Global unemployment data by country, frequency, and demographic group.
+
+```python
+res = obb.economy.unemployment(
+    country="all",
+    frequency="quarter",
+    age="total",
+    provider="oecd",
+)
+```
+
+### `obb.economy.survey.nonfarm_payrolls`
+
+US Nonfarm Payrolls Survey including employment levels and average hours worked.
+
+```python
+res = obb.economy.survey.nonfarm_payrolls(
+    category="avg_hours",
+    provider="fred",
+)
+```
+
+---
+
+## Surveys
+
+### `obb.economy.survey.sloos`
+
+Senior Loan Officers Opinion Survey (SLOOS) — credit standards and lending conditions from FRED.
+
+```python
+res = obb.economy.survey.sloos(category="credit_card", provider="fred")
+```
+
+### `obb.economy.survey.university_of_michigan`
+
+University of Michigan Consumer Sentiment Index and inflation expectations.
+
+```python
+res = obb.economy.survey.university_of_michigan(provider="fred")
+```
+
+### `obb.economy.survey.inflation_expectations`
+
+Forward inflation expectations from the Survey of Professional Forecasters.
+
+```python
+res = obb.economy.survey.inflation_expectations(provider="federal_reserve")
+```
+
+### `obb.economy.survey.manufacturing_outlook_ny`
+
+Empire State Manufacturing Survey — monthly survey of NY State manufacturers by the NY Fed.
+
+```python
+res = obb.economy.survey.manufacturing_outlook_ny(
+    topic="hours_worked,new_orders",
+    transform="pc1",
+    provider="fred",
+    seasonally_adjusted=True,
+)
+```
+
+### `obb.economy.survey.manufacturing_outlook_texas`
+
+Manufacturing Outlook Survey for the Texas region, published by the Dallas Fed.
+
+```python
+res = obb.economy.survey.manufacturing_outlook_texas(
+    topic="business_outlook,new_orders",
+    provider="fred",
+)
+```
+
+### `obb.economy.survey.economic_conditions_chicago`
+
+Survey of Economic Conditions for the Chicago region.
+
+```python
+res = obb.economy.survey.economic_conditions_chicago(provider="fred")
+```
+
+### `obb.economy.survey.bls_search`
+
+Search BLS surveys by category and keyword to find series IDs for use with `bls_series`.
+
+```python
+res = obb.economy.survey.bls_search(
+    provider="bls",
+    category="cpi",
+    query="seattle;gasoline",  # semicolon acts as AND
+)
+```
+
+### `obb.economy.survey.bls_series`
+
+Retrieve time series data for one or more BLS series IDs.
+
+```python
+res = obb.economy.survey.bls_series(
+    provider="bls",
+    symbol="CES0000000001",
+)
+```
+
+---
+
+## Trade and balance of payments
+
+### `obb.economy.balance_of_payments`
+
+Balance of Payments reports by country from FRED or ECB.
+
+```python
+res = obb.economy.balance_of_payments(
+    country="united_states",
+    provider="ecb",
+)
+```
+
+### `obb.economy.direction_of_trade`
+
+IMF Direction of Trade Statistics (DOTS) — bilateral trade flows between countries.
+
+```python
+res = obb.economy.direction_of_trade(
+    provider="imf",
+    country="us",
+    counterpart="world,eu",
+    frequency="annual",
+    direction="exports",
+)
+```
+
+### `obb.economy.export_destinations`
+
+Top export destinations for a country from the UN Comtrade database.
+
+```python
+res = obb.economy.export_destinations(provider="econdb", country="us")
+```
+
+---
+
+## Shipping
+
+### `obb.economy.shipping.port_volume`
+
+Daily port calls and estimated trading volumes for ports worldwide.
+
+```python
+res = obb.economy.shipping.port_volume(
+    provider="imf",
+    port_code="rotterdam,singapore",
+)
+```
+
+### `obb.economy.shipping.port_info`
+
+Metadata and statistics for all ports from a given provider, with optional continent filtering.
+
+```python
+res = obb.economy.shipping.port_info(
+    provider="imf",
+    continent="asia_pacific",
+)
+```
+
+### `obb.economy.shipping.chokepoint_volume`
+
+Daily transit calls and estimated trade volumes through maritime chokepoints (e.g., Suez Canal, Panama Canal).
+
+```python
+res = obb.economy.shipping.chokepoint_volume(
+    provider="imf",
+    chokepoint="suez_canal,panama_canal",
+)
+```
+
+### `obb.economy.shipping.chokepoint_info`
+
+General metadata for all maritime chokepoint locations from the IMF.
+
+```python
+res = obb.economy.shipping.chokepoint_info(provider="imf")
+```
+
+---
+
+## FRED utilities
+
+### `obb.economy.fred_series`
+
+Retrieve one or more FRED time series by symbol, with optional transformation.
+
+```python
+res = obb.economy.fred_series(
+    symbol="CBBTCUSD",
+    transform="pc1",
+    provider="fred",
+)
+```
+
+### `obb.economy.fred_search`
+
+Search for FRED series or economic releases by ID or keyword. Returns metadata only — use series IDs with `fred_series`.
+
+```python
+res = obb.economy.fred_search(provider="fred")
+```
+
+### `obb.economy.fred_regional`
+
+Query the Geo Fred API for regional economic data by series group ID. Use `fred_search` with `series_id` to find group IDs.
+
+```python
+res = obb.economy.fred_regional(
+    symbol="NYICLAIMS",
+    start_date="2021-01-01",
+    end_date="2021-12-31",
+    limit=10,
+    provider="fred",
+)
+```
+
+### `obb.economy.fred_release_table`
+
+Get economic release data by release ID and optional element ID from FRED.
+
+```python
+res = obb.economy.fred_release_table(
+    release_id="50",
+    element_id="4881",
+    provider="fred",
+)
+```
+
+---
+
+## Other indicators
+
+### `obb.economy.calendar`
+
+Economic calendar of upcoming or historical global events.
+
+```python
+res = obb.economy.calendar(
+    provider="fmp",
+    start_date="2020-03-01",
+    end_date="2020-03-31",
+)
+```
+
+### `obb.economy.composite_leading_indicator`
+
+OECD Composite Leading Indicator (CLI) — early signals of business cycle turning points.
+
+```python
+res = obb.economy.composite_leading_indicator(
+    country="all",
+    provider="oecd",
+    growth_rate=True,
+)
+```
+
+### `obb.economy.risk_premium`
+
+Market risk premium by country.
+
+```python
+res = obb.economy.risk_premium(provider="fmp")
+```
+
+### `obb.economy.share_price_index`
+
+Share Price Index by country from the OECD Short-Term Economics Statistics.
+
+```python
+res = obb.economy.share_price_index(
+    country="united_kingdom,germany",
+    frequency="quarter",
+    provider="oecd",
+)
+```
+
+### `obb.economy.house_price_index`
+
+House Price Index by country from the OECD Short-Term Economics Statistics.
+
+```python
+res = obb.economy.house_price_index(
+    country="united_kingdom,germany",
+    frequency="quarter",
+    provider="oecd",
+)
+```
+
+### `obb.economy.total_factor_productivity`
+
+Quarterly Total Factor Productivity (TFP) for the US business sector, adjusted for factor utilization. Source: San Francisco Fed.
+
+```python
+res = obb.economy.total_factor_productivity(
+    provider="federal_reserve",
+    frequency="summary",
+)
+```
+
+### `obb.economy.primary_dealer_positioning`
+
+Primary dealer positioning statistics from the NY Federal Reserve.
+
+```python
+res = obb.economy.primary_dealer_positioning(
+    category="abs",
+    provider="federal_reserve",
+)
+```
+
+### `obb.economy.primary_dealer_fails`
+
+Primary dealer statistics for fails to deliver and fails to receive, updated weekly by the NY Fed.
+
+```python
+res = obb.economy.primary_dealer_fails(
+    provider="federal_reserve",
+    unit="percent",
+)
+```

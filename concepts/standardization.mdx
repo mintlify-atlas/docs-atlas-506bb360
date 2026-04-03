@@ -1,0 +1,273 @@
+---
+title: "Standardization framework"
+description: "OpenBB normalizes query parameters and data fields across all providers. The same code runs against any provider — only the extras change."
+keywords: ["standardization", "standard model", "query params", "data model", "fetcher", "TET pattern", "openbb"]
+---
+
+The standardization framework is the core of what makes OpenBB a platform rather than a collection of API wrappers. It defines shared schemas for query inputs and data outputs so that you can switch providers without rewriting your code.
+
+```python
+from openbb import obb
+
+# Same fields, same index, different source
+fmp   = obb.equity.price.historical("AAPL", provider="fmp").to_dataframe()
+yhoo  = obb.equity.price.historical("AAPL", provider="yfinance").to_dataframe()
+intri = obb.equity.price.historical("AAPL", provider="intrinio").to_dataframe()
+
+# All three DataFrames share the same standard columns:
+# date, open, high, low, close, volume, vwap
+```
+
+## Standard models
+
+Every data endpoint has two standard models, both Pydantic v2:
+
+- **`QueryParams`** — defines the parameters that every provider for this endpoint must accept.
+- **`Data`** — defines the output fields that every provider for this endpoint must return.
+
+Standard models live in `openbb_core.provider.standard_models` and are maintained by the OpenBB team.
+
+### `QueryParams`
+
+`QueryParams` is the base class for all query parameter models. It supports alias mapping (for providers that use different parameter names) and extra field merging for per-provider JSON schema annotations.
+
+```python
+from openbb_core.provider.abstract.query_params import QueryParams
+
+class QueryParams(BaseModel):
+    __alias_dict__: dict[str, str] = {}
+    __json_schema_extra__: dict[str, Any] = {}
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+```
+
+The `extra="allow"` config means provider-specific extra parameters can be passed through the same model without raising a validation error.
+
+### `Data`
+
+`Data` is the base class for all output data models. It accepts extra fields (for provider-specific columns) and applies automatic CamelCase → snake_case alias generation for incoming data.
+
+```python
+from openbb_core.provider.abstract.data import Data
+
+class Data(BaseModel):
+    __alias_dict__: dict[str, str] = {}
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+        strict=False,
+        alias_generator=AliasGenerator(
+            validation_alias=alias_generators.to_camel,
+            serialization_alias=alias_generators.to_snake,
+        ),
+    )
+```
+
+The `alias_generator` means a provider that returns `adjClose` in its JSON response will be automatically mapped to `adj_close` in the data model without any manual field mapping.
+
+## Example: equity historical price
+
+The `EquityHistorical` standard model illustrates how standard and provider-specific layers compose.
+
+### Standard `QueryParams`
+
+```python
+class EquityHistoricalQueryParams(QueryParams):
+    """Equity Historical Price Query."""
+
+    symbol: str = Field(description="Symbol to get data for.")
+    start_date: date | None = Field(default=None, description="Start date.")
+    end_date: date | None = Field(default=None, description="End date.")
+```
+
+All providers implementing `EquityHistorical` must accept `symbol`, `start_date`, and `end_date`.
+
+### Standard `Data`
+
+```python
+class EquityHistoricalData(Data):
+    """Equity Historical Price Data."""
+
+    date: date | datetime = Field(description="The date of the data.")
+    open: float = Field(description="The open price.")
+    high: float = Field(description="The high price.")
+    low: float = Field(description="The low price.")
+    close: float = Field(description="The close price.")
+    volume: float | int | None = Field(default=None, description="The trading volume.")
+    vwap: float | None = Field(default=None, description="Volume weighted average price.")
+```
+
+`vwap` is `Optional` because not every provider supplies it, but at least two do — so it earns a place in the standard model.
+
+### Provider-specific extension (FMP)
+
+Providers subclass the standard models to add their own parameters and fields:
+
+```python
+class FMPEquityHistoricalQueryParams(EquityHistoricalQueryParams):
+    """FMP-specific query parameters."""
+
+    # Alias mapping: standard "start_date" → FMP API "from"
+    __alias_dict__ = {"start_date": "from", "end_date": "to"}
+
+    # Extra params only FMP supports
+    interval: Literal["1m", "5m", "15m", "30m", "1h", "4h", "1d"] = Field(default="1d")
+    adjustment: Literal["splits_only", "splits_and_dividends", "unadjusted"] = Field(
+        default="splits_only"
+    )
+
+
+class FMPEquityHistoricalData(EquityHistoricalData):
+    """FMP-specific output fields."""
+
+    # FMP returns adjusted OHLC under camelCase keys
+    __alias_dict__ = {
+        "open": "adjOpen",
+        "high": "adjHigh",
+        "low": "adjLow",
+        "close": "adjClose",
+    }
+
+    # Extra fields only FMP provides
+    change: float | None = Field(default=None, description="Change from previous close.")
+    change_percent: float | None = Field(default=None, description="Change percent.")
+```
+
+When you call `result.to_dataframe()`, the DataFrame always contains the standard columns (`date`, `open`, `high`, `low`, `close`, `volume`, `vwap`). FMP-specific columns like `change` and `change_percent` appear as additional columns.
+
+## The TET pattern
+
+Every provider `Fetcher` follows the **Transform → Extract → Transform** pattern. This structure is enforced by the abstract `Fetcher` base class.
+
+```
+User params (dict)
+       │
+       ▼
+ transform_query()   ← T: Validate and reshape params into a typed QueryParams model
+       │
+       ▼
+  extract_data()     ← E: Make the HTTP request, return raw data (list[dict] or similar)
+       │
+       ▼
+ transform_data()    ← T: Validate raw data into typed Data model instances
+       │
+       ▼
+   list[Data]        → returned as OBBject.results
+```
+
+### Step 1 — Transform query
+
+Convert the raw parameter dict into a provider-specific `QueryParams` model. Perform any pre-request transformations here (default date ranges, symbol normalization, etc.).
+
+```python
+@staticmethod
+def transform_query(params: dict[str, Any]) -> FMPEquityHistoricalQueryParams:
+    now = datetime.now().date()
+    if params.get("start_date") is None:
+        params["start_date"] = now - relativedelta(years=1)
+    if params.get("end_date") is None:
+        params["end_date"] = now
+    return FMPEquityHistoricalQueryParams(**params)
+```
+
+### Step 2 — Extract data
+
+Make the API call and return raw data. Do not transform the data here — return it as received from the provider.
+
+```python
+@staticmethod
+async def aextract_data(
+    query: FMPEquityHistoricalQueryParams,
+    credentials: dict[str, str] | None,
+    **kwargs: Any,
+) -> list[dict]:
+    return await get_historical_ohlc(query, credentials, **kwargs)
+```
+
+### Step 3 — Transform data
+
+Convert raw provider data into validated `Data` model instances.
+
+```python
+@staticmethod
+def transform_data(
+    query: FMPEquityHistoricalQueryParams,
+    data: list[dict],
+    **kwargs: Any,
+) -> list[FMPEquityHistoricalData]:
+    if not data:
+        raise EmptyDataError("No data returned from FMP for the given query.")
+    return [FMPEquityHistoricalData.model_validate(d) for d in data]
+```
+
+<Note>
+  `aextract_data` (async) and `extract_data` (sync) are interchangeable. If you define `aextract_data`, it becomes the default `extract_data`. The `Fetcher` base class raises `NotImplementedError` if neither is implemented.
+</Note>
+
+## Field aliasing
+
+OpenBB handles two types of field aliasing:
+
+**Provider API key mapping** — when the provider's API uses different parameter names than the standard:
+
+```python
+# "start_date" in OpenBB → "from" in FMP's API
+__alias_dict__ = {"start_date": "from", "end_date": "to"}
+```
+
+**CamelCase → snake_case** — automatic via the `Data` model's alias generator. A provider returning `adjClose` is automatically mapped to `adj_close`. For cases where the mapping is non-obvious (like `"o"` → `"open"`), use `__alias_dict__` explicitly.
+
+## Standardization caveats
+
+<AccordionGroup>
+  <Accordion title="Only shared fields are standardized">
+    A field enters the standard model when two or more providers supply it. Fields unique to a single provider remain as `Optional` extras on that provider's data model — they appear in the DataFrame but are not guaranteed across providers.
+  </Accordion>
+  <Accordion title="Optional fields in standard models">
+    When a field is standard but not universally supported (e.g., `vwap`), it is declared `Optional` with `default=None`. Providers that don't supply it return `None` for that column.
+  </Accordion>
+  <Accordion title="Standard models are maintained by OpenBB">
+    Adding or modifying a field in a standard model requires a pull request to the OpenBB repository. Provider-specific extras can be added freely within each provider package.
+  </Accordion>
+  <Accordion title="Non-standardized commands still return OBBject">
+    If no standard model exists for an endpoint, all parameters appear under `**kwargs` in the Python interface. The command still returns an `OBBject`, but type information is less specific.
+  </Accordion>
+</AccordionGroup>
+
+## Full `Fetcher` class signature
+
+```python
+from openbb_core.provider.abstract.fetcher import Fetcher
+
+class Fetcher(Generic[Q, R]):
+    require_credentials: bool = True
+
+    @staticmethod
+    def transform_query(params: dict[str, Any]) -> Q: ...
+
+    @staticmethod
+    async def aextract_data(
+        query: Q,
+        credentials: dict[str, str] | None,
+    ) -> Any: ...
+
+    @staticmethod
+    def extract_data(
+        query: Q,
+        credentials: dict[str, str] | None,
+    ) -> Any: ...
+
+    @staticmethod
+    def transform_data(query: Q, data: Any, **kwargs) -> R: ...
+
+    @classmethod
+    async def fetch_data(
+        cls,
+        params: dict[str, Any],
+        credentials: dict[str, str] | None = None,
+        **kwargs,
+    ) -> R: ...
+```
+
+Set `require_credentials = False` on a `Fetcher` subclass to make credentials optional for that specific endpoint, even if the parent `Provider` declares credentials.

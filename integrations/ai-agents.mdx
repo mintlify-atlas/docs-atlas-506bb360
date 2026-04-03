@@ -1,0 +1,249 @@
+---
+title: "AI agents"
+description: "Use OpenBB with AI agents via the MCP server, LangChain, LlamaIndex, or direct Python SDK calls."
+keywords: ['ai agents', 'mcp', 'langchain', 'llamaindex', 'llm', 'tools', 'openai']
+---
+
+The Open Data Platform exposes financial data to AI agents in three ways: through the MCP server protocol, through the REST API (compatible with LangChain and LlamaIndex), and through direct Python SDK calls embedded in agent code.
+
+<CardGroup cols={3}>
+  <Card title="MCP server" icon="server">
+    Connect Claude, Cursor, VS Code, and other MCP-compatible clients to OpenBB tools without writing code.
+  </Card>
+  <Card title="LangChain / LlamaIndex" icon="link">
+    Wrap OpenBB Python callables as structured tools and pass them to any LLM agent framework.
+  </Card>
+  <Card title="Direct Python SDK" icon="code">
+    Call `obb.*` functions directly inside your agent logic for full control over data retrieval.
+  </Card>
+</CardGroup>
+
+## MCP server
+
+The `openbb-mcp-server` package exposes all OpenBB REST API endpoints as MCP tools. Agents can browse categories, activate only the tools they need, and call them without token bloat from unused endpoints.
+
+### Quick start
+
+<Steps>
+  <Step title="Install the MCP server">
+    ```bash
+    pip install openbb-mcp-server
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    openbb-mcp
+    ```
+
+    The server starts at `http://127.0.0.1:8001` using the `streamable-http` transport by default.
+
+    You can also start it without a local install using `uvx`:
+
+    ```bash
+    uvx --from openbb-mcp-server --with openbb openbb-mcp
+    ```
+  </Step>
+  <Step title="Connect your client">
+    Configure your MCP-compatible client to point at the running server. See the client-specific sections below.
+  </Step>
+</Steps>
+
+### Client configuration
+
+<Tabs>
+  <Tab title="Claude Desktop">
+    Add the following entry to your Claude Desktop `mcpServers` configuration. This launches the server automatically using `stdio` transport.
+
+    ```json claude_desktop_config.json
+    {
+      "mcpServers": {
+        "openbb-mcp": {
+          "command": "uvx",
+          "args": [
+            "--from",
+            "openbb-mcp-server",
+            "--with",
+            "openbb",
+            "openbb-mcp",
+            "--transport",
+            "stdio"
+          ]
+        }
+      }
+    }
+    ```
+
+    Restart Claude Desktop to apply the change.
+  </Tab>
+  <Tab title="Cursor">
+    First, start the server in your terminal:
+
+    ```bash
+    openbb-mcp
+    ```
+
+    Then add the following to the `mcpServers` object in your `mcp.json` file:
+
+    ```json mcp.json
+    {
+      "mcpServers": {
+        "openbb-mcp": {
+          "url": "http://localhost:8001/mcp/"
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="VS Code">
+    First, enable MCP in VS Code: open **Preferences: Open User Settings** (`Shift+Cmd+P`), search for `mcp`, and check the box under **Chat**.
+
+    Start the server:
+
+    ```bash
+    openbb-mcp
+    ```
+
+    Then run **MCP: Add Server** (`Shift+Cmd+P`), select **HTTP**, and enter the server URL shown in the console:
+
+    ```
+    http://127.0.0.1:8001/mcp
+    ```
+  </Tab>
+</Tabs>
+
+### Tool categories
+
+The MCP server organizes OpenBB tools into categories based on installed extensions. Each category maps to the first path segment of the API route.
+
+| Category | Description |
+| --- | --- |
+| `equity` | Stock data, fundamentals, price history, estimates |
+| `crypto` | Cryptocurrency data and analysis |
+| `economy` | Economic indicators, GDP, employment data |
+| `news` | Financial news from various sources |
+| `fixedincome` | Bond data, rates, government securities |
+| `derivatives` | Options and futures data |
+| `etf` | ETF information and holdings |
+| `currency` | Foreign exchange data |
+| `commodity` | Commodity prices and data |
+| `index` | Market indices data |
+| `regulators` | SEC, CFTC regulatory data |
+
+### Tool discovery
+
+When started with `--tool-discovery`, the server registers admin tools that let agents progressively activate what they need:
+
+```bash
+openbb-mcp --tool-discovery --default-categories admin
+```
+
+| Tool | Description |
+| --- | --- |
+| `available_categories` | List all tool categories with subcategory names and tool counts |
+| `available_tools` | List tools in a specific category with active/inactive state |
+| `activate_tools` | Activate one or more tools by name for the current session |
+| `activate_category` | Activate all tools in a category at once |
+| `deactivate_tools` | Remove tools from the current session |
+
+Tool visibility is **per-session**: each connected client has its own active toolset, so multiple agents can connect simultaneously without interfering with each other.
+
+## LangChain integration
+
+OpenBB Python callables can be wrapped directly as LangChain `StructuredTool` objects, using each function's docstring as the tool description.
+
+### Wrapping a single endpoint
+
+```python
+from openbb import obb
+from langchain_core.tools import StructuredTool
+
+llm_historical_price = StructuredTool.from_function(
+    func=obb.equity.price.historical,
+    description=obb.equity.price.historical.__doc__.split("\n")[0],
+)
+```
+
+### Wrapping all available endpoints
+
+```python
+from openbb import obb
+from langchain_core.tools import StructuredTool
+
+llm_tools = [
+    StructuredTool.from_function(
+        name=name,
+        func=schema["callable"],
+        description=schema["callable"].__doc__.split("\n")[0],
+    )
+    for name, schema in obb.coverage.command_schemas().items()
+]
+```
+
+### Full agent example
+
+```python
+from openbb import obb
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.tools import StructuredTool
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "You are a powerful financial assistant."),
+        ("user", "{input}"),
+        MessagesPlaceholder(variable_name="agent_scratchpad"),
+    ]
+)
+
+llm_tools = [
+    StructuredTool.from_function(
+        func=obb.equity.price.quote,
+        description=obb.equity.price.quote.__doc__.split("\n")[0],
+    )
+]
+
+llm = ChatOpenAI(model="gpt-4", temperature=0.1)
+
+agent = create_openai_functions_agent(llm=llm, tools=llm_tools, prompt=prompt)
+agent_executor = AgentExecutor(agent=agent, tools=llm_tools, verbose=True)
+
+agent_executor.invoke({"input": "What is the latest stock price of AAPL?"})
+```
+
+Install the required dependencies before running:
+
+```bash
+pip install openbb langchain langchain_community langchain_openai
+```
+
+## Direct Python SDK
+
+You can call `obb.*` functions directly inside your own agent or pipeline code. Every response can be converted to a pandas DataFrame for further processing.
+
+```python
+from openbb import obb
+
+# Fetch historical price data
+output = obb.equity.price.historical("AAPL")
+df = output.to_dataframe()
+
+# Fetch a quote
+quote = obb.equity.price.quote("AAPL").to_dataframe()
+
+# Fetch financial news
+news = obb.news.company(symbols="AAPL").to_dataframe()
+```
+
+All available data integrations are listed in the [OpenBB reference](https://docs.openbb.co/python/reference).
+
+## Related resources
+
+<CardGroup cols={2}>
+  <Card title="agents-for-openbb" icon="github" href="https://github.com/OpenBB-finance/agents-for-openbb">
+    Example AI agents built on top of the OpenBB Platform.
+  </Card>
+  <Card title="openbbPlatformAsLLMTools notebook" icon="book-open" href="https://github.com/OpenBB-finance/OpenBB/blob/develop/examples/openbbPlatformAsLLMTools.ipynb">
+    End-to-end notebook showing OpenBB endpoints as LangChain tools fed to a GPT-4 agent.
+  </Card>
+</CardGroup>

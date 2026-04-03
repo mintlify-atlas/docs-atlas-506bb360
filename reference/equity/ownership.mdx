@@ -1,0 +1,298 @@
+---
+title: "Equity Ownership"
+description: "Ownership data commands — major holders, institutional ownership, insider trading, share statistics, 13-F filings, and government trades."
+keywords: ["equity", "ownership", "insider trading", "institutional", "13-F", "share statistics", "government trades", "form 13f"]
+---
+
+Commands for retrieving equity ownership data, including institutional holders, insider transactions, share float statistics, regulatory filings, and government trades. All commands are available under the `obb.equity.ownership` namespace.
+
+---
+
+## Holders
+
+### `obb.equity.ownership.major_holders`
+
+Get data about major holders for a given company over time.
+
+**REST path:** `GET /api/v1/equity/ownership/major_holders`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol (e.g. `AAPL`).
+</ParamField>
+
+<ParamField query="page" type="number" default="0">
+  Page number for paginated results. Starts at `0`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.ownership.major_holders(symbol="AAPL", provider="fmp")
+
+# Paginate through results
+result = obb.equity.ownership.major_holders(symbol="AAPL", page=0, provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/ownership/major_holders?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `investor_name`, `cik`, `date`, `filing_date`, `symbol`
+
+---
+
+### `obb.equity.ownership.institutional`
+
+Get net statistics on institutional ownership for a given company, as reported on 13-F filings.
+
+**REST path:** `GET /api/v1/equity/ownership/institutional`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="year" type="number">
+  Filter by year of the 13-F filing period (e.g. `2024`).
+</ParamField>
+
+<ParamField query="quarter" type="number">
+  Filter by quarter of the 13-F filing period. Options: `1`, `2`, `3`, `4`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.ownership.institutional(symbol="AAPL", provider="fmp")
+
+# Specific filing period
+result = obb.equity.ownership.institutional(
+    symbol="AAPL",
+    year=2024,
+    quarter=2,
+    provider="fmp",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/ownership/institutional?symbol=AAPL&year=2024&quarter=2&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+## Insider trading
+
+### `obb.equity.ownership.insider_trading`
+
+Get data about trading by a company's management team and board of directors, sourced from SEC Form 4 filings.
+
+**REST path:** `GET /api/v1/equity/ownership/insider_trading`
+
+**Providers:** `fmp`, `intrinio`, `sec`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum number of transactions to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.ownership.insider_trading(symbol="AAPL", provider="fmp")
+
+# Higher limit via Intrinio
+result = obb.equity.ownership.insider_trading(
+    symbol="AAPL",
+    limit=500,
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/ownership/insider_trading?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+## Share float
+
+### `obb.equity.ownership.share_statistics`
+
+Get share float and outstanding share statistics for a given company.
+
+**REST path:** `GET /api/v1/equity/ownership/share_statistics`
+
+**Providers:** `fmp`, `intrinio`, `yfinance`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.ownership.share_statistics(symbol="AAPL", provider="fmp")
+stats = result.results[0]
+print(stats.free_float, stats.float_shares, stats.outstanding_shares)
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/ownership/share_statistics?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `symbol`, `date`, `free_float`, `float_shares`, `outstanding_shares`
+
+---
+
+## Regulatory filings
+
+### `obb.equity.ownership.form_13f`
+
+Get SEC Form 13-F holdings report for an institutional investment manager. 13-F filings are required quarterly for all managers with at least $100 million in assets under management (AUM), and must be filed within 45 days of each calendar quarter end.
+
+**REST path:** `GET /api/v1/equity/ownership/form_13f`
+
+**Providers:** `sec`
+
+<ParamField query="symbol" type="string" required>
+  Ticker symbol or CIK of the institutional manager (e.g. `NVDA`, `BRK-A`, or a CIK string).
+</ParamField>
+
+<ParamField query="date" type="string">
+  Calendar quarter end date in `YYYY-MM-DD` format to retrieve a specific report.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of most recent reports to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# Most recent 13-F for Nvidia
+result = obb.equity.ownership.form_13f(symbol="NVDA", provider="sec")
+
+# Specific historical quarter
+result = obb.equity.ownership.form_13f(
+    symbol="BRK-A",
+    date="2016-09-30",
+    provider="sec",
+)
+
+# Find a manager by CIK and retrieve their 2 most recent reports
+cik = obb.regulators.sec.institutions_search("Scion Asset Management").results[0].cik
+result = obb.equity.ownership.form_13f(cik, limit=2, provider="sec")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/ownership/form_13f?symbol=NVDA&provider=sec"
+```
+
+</CodeGroup>
+
+<Tip>
+  Use `obb.regulators.sec.institutions_search` to look up a manager's CIK by name, then pass the CIK to `form_13f` to retrieve their holdings.
+</Tip>
+
+---
+
+## Government trades
+
+### `obb.equity.ownership.government_trades`
+
+Get government transaction data, including trades reported by U.S. Senate and House of Representatives members.
+
+**REST path:** `GET /api/v1/equity/ownership/government_trades`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string">
+  Stock ticker symbol. Optional — when omitted, returns trades across all tickers.
+</ParamField>
+
+<ParamField query="chamber" type="string" required>
+  Congressional chamber to retrieve data from. Options: `senate`, `house`, `all`.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum number of records to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# All government trades for AAPL
+result = obb.equity.ownership.government_trades(
+    symbol="AAPL",
+    chamber="all",
+    provider="fmp",
+)
+
+# All trades across both chambers, up to 500 records
+result = obb.equity.ownership.government_trades(
+    limit=500,
+    chamber="all",
+    provider="fmp",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/ownership/government_trades?symbol=AAPL&chamber=all&provider=fmp"
+```
+
+</CodeGroup>

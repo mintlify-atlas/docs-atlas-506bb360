@@ -1,0 +1,191 @@
+---
+title: "Publish an extension"
+description: "Package and publish your OpenBB extension to PyPI so others can install it."
+keywords: ["publish", "PyPI", "poetry", "entry point", "pyproject.toml", "versioning"]
+---
+
+Once your extension is working locally, publish it to PyPI so that anyone can install it with `pip install`. This page covers the full lifecycle: `pyproject.toml` setup, building the distribution, and publishing.
+
+## pyproject.toml setup
+
+A correctly structured `pyproject.toml` is the only requirement for publication. The two critical sections are the entry points and the package metadata.
+
+<Tabs>
+  <Tab title="Provider extension">
+    ```toml pyproject.toml
+    [tool.poetry]
+    name = "openbb-my-provider"
+    version = "0.1.0"
+    description = "Financial data from MyProvider for the OpenBB Platform."
+    readme = "README.md"
+    homepage = "https://github.com/your-org/openbb-my-provider"
+    repository = "https://github.com/your-org/openbb-my-provider"
+    keywords = ["openbb", "finance", "data", "my-provider"]
+    packages = [{ include = "openbb_my_provider" }]
+
+    [tool.poetry.dependencies]
+    python = "^3.9"
+    openbb-core = ">=1.0,<2"
+
+    # Declare the entry point so the platform discovers your provider
+    [tool.poetry.plugins."openbb_provider_extension"]
+    my_provider = "openbb_my_provider:my_provider"
+
+    [build-system]
+    requires = ["poetry-core"]
+    build-backend = "poetry.core.masonry.api"
+    ```
+  </Tab>
+  <Tab title="Router extension">
+    ```toml pyproject.toml
+    [tool.poetry]
+    name = "openbb-my-extension"
+    version = "0.1.0"
+    description = "Custom commands for the OpenBB Platform."
+    readme = "README.md"
+    homepage = "https://github.com/your-org/openbb-my-extension"
+    repository = "https://github.com/your-org/openbb-my-extension"
+    keywords = ["openbb", "finance", "extension"]
+    packages = [{ include = "openbb_my_extension" }]
+
+    [tool.poetry.dependencies]
+    python = "^3.9"
+    openbb-core = ">=1.0,<2"
+
+    # Declare the entry point so the platform discovers your router
+    [tool.poetry.plugins."openbb_router_extension"]
+    my_extension = "openbb_my_extension.my_router:router"
+
+    [build-system]
+    requires = ["poetry-core"]
+    build-backend = "poetry.core.masonry.api"
+    ```
+  </Tab>
+</Tabs>
+
+### Entry point format
+
+```
+<name> = "<dotted.module.path>:<attribute>"
+```
+
+| Part | Description |
+|---|---|
+| `<name>` | An arbitrary identifier (usually your provider or extension name). |
+| `<dotted.module.path>` | The importable Python module containing the `Provider` or `Router` instance. |
+| `<attribute>` | The name of the `Provider` or `Router` variable in that module. |
+
+## Get a PyPI API token
+
+1. Create an account at [pypi.org](https://pypi.org).
+2. Go to **Account settings → API tokens** and create a new token scoped to your project (or a global token for first-time uploads).
+3. Store the token with Poetry:
+
+```bash
+poetry config pypi-token.pypi pypi-XXXXXXXXXXXXXXXX
+```
+
+## Build the distribution
+
+`cd` into the directory that contains your `pyproject.toml` and run:
+
+```bash
+poetry build
+```
+
+This creates a `dist/` folder containing both the source archive (`.tar.gz`) and the wheel (`.whl`):
+
+```
+dist/
+├── openbb_my_provider-0.1.0-py3-none-any.whl
+└── openbb_my_provider-0.1.0.tar.gz
+```
+
+### Test locally before publishing
+
+Install the wheel directly to verify that entry points are registered correctly:
+
+```bash
+pip install dist/openbb_my_provider-0.1.0-py3-none-any.whl
+python -c "import openbb; openbb.build()"
+python -c "from openbb import obb; print(obb.coverage.providers)"
+```
+
+## Publish to PyPI
+
+```bash
+poetry publish
+```
+
+Poetry uploads both distribution files to PyPI. After the upload succeeds, your package is installable immediately:
+
+```bash
+pip install openbb-my-provider
+```
+
+<Note>
+The first upload to PyPI for a new package name requires a global API token (not project-scoped). After the first release, switch to a project-scoped token for tighter security.
+</Note>
+
+## Versioning conventions
+
+Follow [Semantic Versioning](https://semver.org/):
+
+| Change type | Version bump | Example |
+|---|---|---|
+| Backwards-compatible bug fix | Patch | `0.1.0` → `0.1.1` |
+| New feature, backwards-compatible | Minor | `0.1.0` → `0.2.0` |
+| Breaking change | Major | `0.1.0` → `1.0.0` |
+
+Update the `version` field in `pyproject.toml` before each release and rebuild:
+
+```bash
+# Update version in pyproject.toml, then:
+poetry build
+poetry publish
+```
+
+<Tip>
+While your extension is in early development, use a pre-release version such as `0.0.1a1`. This signals to users that the API may change and lets you publish freely before settling on a stable interface.
+</Tip>
+
+## Dependency versioning
+
+Use loose version ranges to avoid blocking users who have a newer version of the platform:
+
+```toml
+# Good — works with any 1.x release
+openbb-core = ">=1.0,<2"
+
+# Too strict — breaks when platform releases 1.1
+openbb-core = "1.0.0"
+```
+
+## Installing an extension as a dependency
+
+To include another extension as a dependency of your extension (for example, if your router calls commands from `openbb-equity`), add it to `pyproject.toml`:
+
+```toml
+[tool.poetry.dependencies]
+openbb-equity = "^1.0"
+```
+
+For local development, reference the local path instead:
+
+```toml
+[tool.poetry.dependencies]
+openbb-my-other-extension = { path = "../openbb-my-other-extension", develop = true }
+```
+
+## Sharing with the community
+
+After publishing to PyPI:
+
+- Open an issue or discussion in the [OpenBB GitHub repository](https://github.com/OpenBB-finance/OpenBB) to let the team know about your extension.
+- If your extension is of high quality and broad interest, you can open a Pull Request to have it reviewed as a community extension maintained alongside the main codebase.
+
+Community extensions that are accepted into the repository are listed in the OpenBB documentation and installed by default with the `openbb` package extras.
+
+<Warning>
+Do not hard-code credentials or API keys in your extension code. Read them from the `credentials` dict passed to `extract_data` / `aextract_data`, and declare the credential name in the `Provider` constructor so the platform can prompt users to supply them.
+</Warning>

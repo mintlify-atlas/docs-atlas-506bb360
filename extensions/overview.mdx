@@ -1,0 +1,95 @@
+---
+title: "Extensions overview"
+description: "Extend the OpenBB Platform with new data sources and custom commands using Python packages."
+keywords: ["extensions", "providers", "routers", "entry points", "plugins"]
+---
+
+The OpenBB Platform is built around an extension system. Everything beyond the core infrastructure — data providers, command routers, charting — is delivered as an extension. Extensions are ordinary Python packages that the platform discovers automatically at import time using [Python entry points](https://packaging.python.org/en/latest/specifications/entry-points/).
+
+## Two types of extensions
+
+<CardGroup cols={2}>
+  <Card title="Data providers" icon="database" href="/extensions/create-provider">
+    Add a new data source to the platform. A provider extension implements the `Fetcher` interface and registers itself so that existing commands (and any future commands) can use it as a `provider` choice.
+  </Card>
+  <Card title="Router extensions" icon="route" href="/extensions/create-router">
+    Add new commands and endpoints to the platform. A router extension creates an OpenBB `Router`, defines command functions, and mounts the router under a URL prefix that becomes accessible from both the Python SDK and the REST API.
+  </Card>
+</CardGroup>
+
+## How extensions are discovered
+
+The platform uses Python's entry point mechanism to discover installed extensions. When you run `from openbb import obb` (or call `openbb.build()`), the platform scans installed packages for two entry point groups:
+
+| Entry point group | Purpose |
+|---|---|
+| `openbb_provider_extension` | Registers a data provider |
+| `openbb_router_extension` | Registers a router / command group |
+
+Extensions declared under these groups are loaded automatically — no manual registration is required beyond declaring the entry point in your package's `pyproject.toml`.
+
+```toml pyproject.toml
+[tool.poetry.plugins."openbb_provider_extension"]
+my_provider = "openbb_my_provider:my_provider_instance"
+
+[tool.poetry.plugins."openbb_router_extension"]
+my_router = "openbb_my_extension.my_router:router"
+```
+
+After installing a new extension, trigger a package rebuild so the Python SDK picks up the new routes:
+
+```python
+import openbb
+openbb.build()
+```
+
+## Extension categories
+
+OpenBB ships three tiers of extensions:
+
+**OpenBB extensions** are built and maintained by the OpenBB team. Examples include `openbb-equity`, `openbb-economy`, and `openbb-crypto`. These live in the main repository under `openbb_platform/extensions/`.
+
+**Community extensions** are built by external contributors and primarily maintained by OpenBB after being accepted into the repository. An example is `openbb-yfinance`.
+
+**Independent extensions** are built and maintained entirely by third parties. These are published to PyPI and installed like any other Python package. OpenBB encourages authors to share independent extensions with the community.
+
+## Architecture overview
+
+```
+openbb-core                     # Core infrastructure (Router, Fetcher, Data, QueryParams)
+├── openbb_provider_extension   # Entry point group → data provider packages
+│   ├── openbb-fmp              #   e.g. Financial Modeling Prep provider
+│   └── openbb-yfinance         #   e.g. yfinance provider
+└── openbb_router_extension     # Entry point group → router/command packages
+    ├── openbb-equity           #   e.g. equity commands (price, fundamentals, …)
+    └── openbb-economy          #   e.g. economy commands
+```
+
+Each provider extension supplies one `Provider` instance that maps model names (e.g. `"EquityHistorical"`) to `Fetcher` classes. Each router extension supplies one `Router` instance that defines command functions under a URL prefix (e.g. `/equity/price`).
+
+When a command is invoked, the platform resolves the `provider` argument to the corresponding `Fetcher`, calls the three-stage TET pipeline (`transform_query` → `extract_data` → `transform_data`), and wraps the result in an `OBBject`.
+
+## Installing an extension
+
+```bash
+# Install from PyPI
+pip install openbb-some-extension
+
+# Install a locally developed extension in editable mode
+pip install -e path/to/my-extension
+```
+
+<Note>
+After installing any extension, rebuild the OpenBB package so the Python SDK includes the new routes: `python -c "import openbb; openbb.build()"`.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Create a data provider" icon="plug" href="/extensions/create-provider">
+    Step-by-step guide to building a provider extension that adds a new data source.
+  </Card>
+  <Card title="Create a router extension" icon="terminal" href="/extensions/create-router">
+    Step-by-step guide to building a router extension that adds new commands.
+  </Card>
+</CardGroup>

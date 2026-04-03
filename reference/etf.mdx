@@ -1,0 +1,223 @@
+---
+title: "ETF"
+description: "Access ETF data including search, holdings, sector and country weights, price history, performance metrics, NPORT disclosures, and equity exposure across providers such as FMP, SEC, and Yahoo Finance."
+keywords: ["ETF", "exchange traded fund", "holdings", "sectors", "countries", "NPORT", "fmp", "sec", "yfinance", "wsj"]
+---
+
+The `obb.etf` namespace provides comprehensive ETF data — from discovery and screening to detailed portfolio analytics. Commands cover search, historical prices, information, sector and country weights, holdings, disclosures, and equity exposure.
+
+<CardGroup cols={2}>
+  <Card title="Search and info" icon="magnifying-glass" href="#search-and-info">
+    Find ETFs and retrieve fund-level metadata
+  </Card>
+  <Card title="Holdings and weights" icon="pie-chart" href="#holdings-and-weights">
+    Holdings, sector weights, and country allocations
+  </Card>
+  <Card title="Performance" icon="chart-line" href="#performance">
+    Historical prices and return metrics across periods
+  </Card>
+  <Card title="Discovery" icon="rocket" href="#discovery">
+    Top gainers, losers, and most active ETFs
+  </Card>
+</CardGroup>
+
+---
+
+## Search and info
+
+### `obb.etf.search`
+
+Search for ETFs across a provider's universe. An empty query returns all available ETFs; a text query matches against fund names and descriptions.
+
+<CodeGroup>
+
+```python All ETFs
+res = obb.etf.search(provider="fmp")
+```
+
+```python Text search
+res = obb.etf.search(
+    query="commercial real estate",
+    provider="fmp",
+)
+```
+
+</CodeGroup>
+
+### `obb.etf.info`
+
+Detailed information overview for one or more ETFs — expense ratio, AUM, issuer, and fund description.
+
+<CodeGroup>
+
+```python Single ETF
+res = obb.etf.info(symbol="SPY", provider="fmp")
+```
+
+```python Multiple ETFs
+res = obb.etf.info(symbol="SPY,IWM,QQQ,DJIA", provider="fmp")
+```
+
+</CodeGroup>
+
+---
+
+## Holdings and weights
+
+### `obb.etf.holdings`
+
+Portfolio holdings for an individual ETF, including weight and share count per position.
+
+<CodeGroup>
+
+```python Current holdings — FMP
+res = obb.etf.holdings(symbol="XLK", provider="fmp")
+```
+
+```python Historical holdings via SEC
+res = obb.etf.holdings(
+    symbol="XLK",
+    date="2022-03-31",
+    provider="sec",
+)
+```
+
+</CodeGroup>
+
+### `obb.etf.sectors`
+
+Sector weight breakdown of an ETF's portfolio.
+
+```python
+res = obb.etf.sectors(symbol="SPY", provider="fmp")
+```
+
+### `obb.etf.countries`
+
+Country weight breakdown of an ETF's portfolio. Most useful for international and global funds.
+
+```python
+res = obb.etf.countries(symbol="VT", provider="fmp")
+```
+
+### `obb.etf.equity_exposure`
+
+Given one or more stock tickers, identify which ETFs hold that stock and at what weight.
+
+<CodeGroup>
+
+```python Single stock
+res = obb.etf.equity_exposure(symbol="MSFT", provider="fmp")
+```
+
+```python Multiple stocks
+res = obb.etf.equity_exposure(symbol="MSFT,AAPL", provider="fmp")
+```
+
+</CodeGroup>
+
+---
+
+## Performance
+
+### `obb.etf.historical`
+
+Historical OHLCV market prices for one or more ETFs.
+
+<CodeGroup>
+
+```python SPY — FMP
+res = obb.etf.historical(symbol="SPY", provider="fmp")
+```
+
+```python SPY — Yahoo Finance
+res = obb.etf.historical(symbol="SPY", provider="yfinance")
+```
+
+```python Multiple tickers
+res = obb.etf.historical(
+    symbol="SPY,IWM,QQQ,DJIA",
+    provider="yfinance",
+)
+```
+
+</CodeGroup>
+
+### `obb.etf.price_performance`
+
+Price return performance across standard periods (1W, 1M, 3M, 6M, 1Y, 3Y, 5Y).
+
+<CodeGroup>
+
+```python Single ETF
+res = obb.etf.price_performance(symbol="QQQ", provider="fmp")
+```
+
+```python Multiple ETFs
+res = obb.etf.price_performance(
+    symbol="SPY,QQQ,IWM,DJIA",
+    provider="fmp",
+)
+```
+
+</CodeGroup>
+
+---
+
+## Regulatory disclosures
+
+### `obb.etf.nport_disclosure`
+
+SEC NPORT-P quarterly portfolio disclosure filings for US ETFs and mutual funds.
+
+<CodeGroup>
+
+```python FMP — Q1 2025
+res = obb.etf.nport_disclosure(
+    symbol="XLK",
+    provider="fmp",
+    year=2025,
+    quarter=1,
+)
+```
+
+```python SEC — with extended metadata
+response = obb.etf.nport_disclosure(
+    symbol="XLK",
+    provider="sec",
+    year=2025,
+    quarter=1,
+)
+# Flow and returns data is available in the metadata field
+print(response.extra["results_metadata"])
+```
+
+</CodeGroup>
+
+---
+
+## Discovery
+
+### `obb.etf.discovery.gainers`
+
+Top ETF gainers by price change during the current session.
+
+```python
+res = obb.etf.discovery.gainers(provider="wsj")
+```
+
+### `obb.etf.discovery.losers`
+
+Top ETF losers by price decline during the current session.
+
+```python
+res = obb.etf.discovery.losers(provider="wsj")
+```
+
+### `obb.etf.discovery.active`
+
+Most actively traded ETFs by volume during the current session.
+
+```python
+res = obb.etf.discovery.active(provider="wsj")
+```

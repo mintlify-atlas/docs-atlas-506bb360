@@ -1,0 +1,149 @@
+---
+title: "Market Indices"
+description: "Access market index data including historical price levels, constituents, sector weights, index snapshots, S&P 500 multiples, and index search across providers such as FMP, CBOE, TMX, and Intrinio."
+keywords: ["index", "market index", "S&P 500", "Dow Jones", "constituents", "Shiller PE", "CBOE", "fmp", "tmx", "intrinio"]
+---
+
+The `obb.index` namespace provides data for global equity indices. Commands cover historical price levels, constituent listings, sector allocations, cross-provider snapshots, and valuation multiples.
+
+<CardGroup cols={2}>
+  <Card title="Price history" icon="chart-line" href="#price-history">
+    Historical daily levels for any index
+  </Card>
+  <Card title="Constituents and sectors" icon="list" href="#constituents-and-sectors">
+    Index members and sector weights
+  </Card>
+  <Card title="Discovery" icon="magnifying-glass" href="#discovery">
+    Available indices, search, and market snapshots
+  </Card>
+  <Card title="S&P 500 multiples" icon="calculator" href="#sp500-multiples">
+    Historical Shiller PE and other valuation ratios
+  </Card>
+</CardGroup>
+
+---
+
+## Price history
+
+### `obb.index.price.historical`
+
+Historical price levels for an index by symbol. Symbol format varies by provider.
+
+<CodeGroup>
+
+```python S&P 500 — FMP
+res = obb.index.price.historical(symbol="^GSPC", provider="fmp")
+```
+
+```python S&P 500 — Intrinio
+res = obb.index.price.historical(symbol="SPX", provider="intrinio")
+```
+
+</CodeGroup>
+
+<Note>
+Not all providers use the same symbol format. Use `obb.index.available` or `obb.index.search` to confirm the correct symbol for your provider.
+</Note>
+
+---
+
+## Constituents and sectors
+
+### `obb.index.constituents`
+
+Get the current constituent members of a given index.
+
+<CodeGroup>
+
+```python Dow Jones — FMP
+res = obb.index.constituents(symbol="dowjones", provider="fmp")
+```
+
+```python CBOE index by ticker symbol
+res = obb.index.constituents(symbol="BEP50P", provider="cboe")
+```
+
+</CodeGroup>
+
+### `obb.index.sectors`
+
+Sector weighting of an index. Shows how the index's market cap is distributed across GICS sectors.
+
+```python
+res = obb.index.sectors(symbol="^TX60", provider="tmx")
+```
+
+---
+
+## Discovery
+
+### `obb.index.available`
+
+List all indices available from a given provider, with their names and symbols.
+
+<CodeGroup>
+
+```python FMP
+res = obb.index.available(provider="fmp")
+```
+
+```python Yahoo Finance
+res = obb.index.available(provider="yfinance")
+```
+
+</CodeGroup>
+
+### `obb.index.search`
+
+Filter the provider's index universe for rows matching a query string.
+
+<CodeGroup>
+
+```python All CBOE indices
+res = obb.index.search(provider="cboe")
+```
+
+```python Search by symbol keyword
+res = obb.index.search(query="SPX", provider="cboe")
+```
+
+</CodeGroup>
+
+### `obb.index.snapshots`
+
+Current levels for all indices from a provider, optionally filtered by region.
+
+<CodeGroup>
+
+```python TMX — Canadian indices
+res = obb.index.snapshots(provider="tmx")
+```
+
+```python CBOE — US indices
+res = obb.index.snapshots(region="us", provider="cboe")
+```
+
+</CodeGroup>
+
+---
+
+## S&P 500 multiples
+
+### `obb.index.sp500_multiples`
+
+Historical S&P 500 valuation multiples including Shiller PE (CAPE), earnings yield, dividend yield, and price-to-book ratios.
+
+<CodeGroup>
+
+```python All multiples
+res = obb.index.sp500_multiples(provider="multpl")
+```
+
+```python Shiller PE — annual
+res = obb.index.sp500_multiples(
+    series_name="shiller_pe_year",
+    provider="multpl",
+)
+```
+
+</CodeGroup>

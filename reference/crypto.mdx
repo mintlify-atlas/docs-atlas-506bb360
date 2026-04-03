@@ -1,0 +1,79 @@
+---
+title: "Crypto"
+description: "Access cryptocurrency market data including historical prices and pair search across providers such as FMP, Yahoo Finance, and Coinbase."
+keywords: ["crypto", "cryptocurrency", "bitcoin", "ethereum", "OHLCV", "yfinance", "fmp", "coinbase", "price history"]
+---
+
+The `obb.crypto` namespace provides market data for cryptocurrency pairs. Commands cover historical OHLCV prices and provider pair search, with support for multiple data sources including FMP, Yahoo Finance, and Coinbase.
+
+<CardGroup cols={2}>
+  <Card title="Price history" icon="chart-candlestick" href="#price">
+    Historical OHLCV data for crypto pairs at daily or intraday intervals
+  </Card>
+  <Card title="Search" icon="magnifying-glass" href="#search">
+    Discover available trading pairs within a provider
+  </Card>
+</CardGroup>
+
+---
+
+## Price
+
+### `obb.crypto.price.historical`
+
+Historical OHLCV price data for one or more cryptocurrency pairs. Date range and interval are supported where the provider allows.
+
+<CodeGroup>
+
+```python BTC/USD — FMP
+res = obb.crypto.price.historical(symbol="BTCUSD", provider="fmp")
+```
+
+```python BTC/USD — date range
+res = obb.crypto.price.historical(
+    symbol="BTCUSD",
+    start_date="2024-01-01",
+    end_date="2024-01-31",
+    provider="fmp",
+)
+```
+
+```python ETH/USD — monthly interval via Yahoo Finance
+res = obb.crypto.price.historical(
+    symbol="ETH-USD",
+    interval="1m",
+    start_date="2024-01-01",
+    end_date="2024-12-31",
+    provider="yfinance",
+)
+```
+
+</CodeGroup>
+
+<Note>
+Symbol format varies by provider. FMP uses `BTCUSD` (no separator), while Yahoo Finance uses `BTC-USD`. Check provider documentation or use `obb.crypto.search` to confirm available symbols.
+</Note>
+
+---
+
+## Search
+
+### `obb.crypto.search`
+
+Search for available cryptocurrency pairs within a provider. An empty query returns all available pairs.
+
+<CodeGroup>
+
+```python All pairs
+res = obb.crypto.search(provider="fmp")
+```
+
+```python Search by pair name
+res = obb.crypto.search(query="BTCUSD", provider="fmp")
+```
+
+</CodeGroup>
+
+<Tip>
+Use `search` to discover the exact symbol format required by a provider before calling `obb.crypto.price.historical`.
+</Tip>

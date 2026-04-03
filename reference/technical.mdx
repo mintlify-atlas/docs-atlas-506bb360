@@ -1,0 +1,693 @@
+---
+title: "Technical Analysis"
+description: "Apply technical indicators to price and volume data using the obb.technical namespace."
+---
+
+<Note>
+  The technical analysis extension is optional and must be installed separately.
+
+  ```bash
+  pip install "openbb[technical]"
+  ```
+</Note>
+
+The `obb.technical` namespace provides a library of technical indicators built on top of [`pandas-ta`](https://github.com/twopirllc/pandas-ta). Every function accepts an `OBBject` result or a list of `Data` objects and returns an `OBBject[list[Data]]` with the indicator columns appended to the original data.
+
+## Usage pattern
+
+```python
+from openbb import obb
+
+# 1. Fetch price data from any provider
+stock_data = obb.equity.price.historical(
+    symbol="AAPL", start_date="2023-01-01", provider="yfinance"
+)
+
+# 2. Pass the results directly to a technical function
+ema_data = obb.technical.ema(data=stock_data.results, target="close", length=50)
+
+# 3. Convert to DataFrame for further analysis
+df = ema_data.to_df()
+print(df.tail())
+```
+
+<Tip>
+  All technical functions accept `data=stock_data.results` directly — you do not need to convert to a DataFrame first.
+</Tip>
+
+---
+
+## Moving averages
+
+### EMA — Exponential Moving Average
+
+EMA gives more weight to recent prices, making it more responsive to new information than SMA.
+
+```python
+ema_data = obb.technical.ema(
+    data=stock_data.results,
+    target="close",
+    length=50,
+    offset=0,
+)
+```
+
+<ParamField path="target" type="string" default="close">
+  Target column name to apply the indicator to.
+</ParamField>
+
+<ParamField path="length" type="number" default="50">
+  Number of periods for the EMA calculation.
+</ParamField>
+
+<ParamField path="offset" type="number" default="0">
+  Number of periods to offset the result.
+</ParamField>
+
+---
+
+### SMA — Simple Moving Average
+
+SMA calculates the arithmetic mean over `length` periods. Each period carries equal weight.
+
+```python
+sma_data = obb.technical.sma(
+    data=stock_data.results,
+    target="close",
+    length=50,
+    offset=0,
+)
+```
+
+<ParamField path="target" type="string" default="close">
+  Target column name.
+</ParamField>
+
+<ParamField path="length" type="number" default="50">
+  Number of periods for the SMA calculation.
+</ParamField>
+
+<ParamField path="offset" type="number" default="0">
+  Number of periods to offset the result.
+</ParamField>
+
+---
+
+### WMA — Weighted Moving Average
+
+WMA assigns higher weight to more recent data points, tracking price more closely than SMA.
+
+```python
+wma_data = obb.technical.wma(
+    data=stock_data.results,
+    target="close",
+    length=50,
+)
+```
+
+---
+
+### HMA — Hull Moving Average
+
+HMA minimizes lag while maintaining curve smoothness.
+
+```python
+hma_data = obb.technical.hma(
+    data=stock_data.results,
+    target="close",
+    length=50,
+)
+```
+
+---
+
+### ZLMA — Zero Lag Exponential Moving Average
+
+ZLMA removes the cumulative lag of a standard EMA by de-lagging the input data before calculation.
+
+```python
+zlma_data = obb.technical.zlma(
+    data=stock_data.results,
+    target="close",
+    length=50,
+)
+```
+
+---
+
+## Momentum indicators
+
+### RSI — Relative Strength Index
+
+RSI measures the speed and magnitude of price changes, ranging from 0 to 100. Values above 70 indicate overbought conditions; values below 30 indicate oversold conditions.
+
+```python
+rsi_data = obb.technical.rsi(
+    data=stock_data.results,
+    target="close",
+    length=14,
+    scalar=100.0,
+    drift=1,
+)
+```
+
+<ParamField path="target" type="string" default="close">
+  Target column name.
+</ParamField>
+
+<ParamField path="length" type="number" default="14">
+  Number of periods for the RSI lookback.
+</ParamField>
+
+<ParamField path="scalar" type="number" default="100.0">
+  Scalar multiplier for the RSI calculation.
+</ParamField>
+
+<ParamField path="drift" type="number" default="1">
+  Difference period.
+</ParamField>
+
+---
+
+### MACD — Moving Average Convergence Divergence
+
+MACD is the difference between a fast and slow EMA. The signal line is an EMA of the MACD. Crossovers between the MACD and signal line are used to identify trend changes.
+
+```python
+macd_data = obb.technical.macd(
+    data=stock_data.results,
+    target="close",
+    fast=12,
+    slow=26,
+    signal=9,
+)
+```
+
+<ParamField path="target" type="string" default="close">
+  Target column name.
+</ParamField>
+
+<ParamField path="fast" type="number" default="12">
+  Number of periods for the fast EMA.
+</ParamField>
+
+<ParamField path="slow" type="number" default="26">
+  Number of periods for the slow EMA.
+</ParamField>
+
+<ParamField path="signal" type="number" default="9">
+  Number of periods for the signal line EMA.
+</ParamField>
+
+---
+
+### Stochastic Oscillator
+
+The stochastic oscillator compares a closing price to a range of prices over a given period. Values above 75 indicate overbought; values below 25 indicate oversold.
+
+```python
+stoch_data = obb.technical.stoch(
+    data=stock_data.results,
+    fast_k_period=14,
+    slow_d_period=3,
+    slow_k_period=3,
+)
+```
+
+---
+
+### CCI — Commodity Channel Index
+
+CCI is designed to detect beginning and ending market trends. The normal trading range is −100 to +100.
+
+```python
+cci_data = obb.technical.cci(
+    data=stock_data.results,
+    length=14,
+    scalar=0.015,
+)
+```
+
+---
+
+### Aroon Indicator
+
+The Aroon indicator measures how long it has been since the highest high or lowest low occurred within a given period. Values near 100 indicate a strong trend; crossovers signal potential trend changes.
+
+```python
+aroon_data = obb.technical.aroon(
+    data=stock_data.results,
+    length=25,
+    scalar=100,
+)
+```
+
+---
+
+### ADX — Average Directional Index
+
+ADX measures trend strength on a scale of 0 to 100. High values indicate a strong trend regardless of direction.
+
+```python
+adx_data = obb.technical.adx(
+    data=stock_data.results,
+    length=50,
+    scalar=100.0,
+    drift=1,
+)
+```
+
+---
+
+### Fisher Transform
+
+The Fisher Transform converts prices into a Gaussian normal distribution to highlight extreme price levels and potential turning points.
+
+```python
+fisher_data = obb.technical.fisher(
+    data=stock_data.results,
+    length=14,
+    signal=1,
+)
+```
+
+---
+
+### Demark Sequential
+
+The Demark Sequential indicator identifies trend exhaustion points by counting specific price-movement patterns.
+
+```python
+demark_data = obb.technical.demark(
+    data=stock_data.results,
+    target="close",
+    show_all=True,
+)
+```
+
+---
+
+### Clenow Volatility Adjusted Momentum
+
+Measures momentum adjusted for volatility, identifying stronger and more reliable trends.
+
+```python
+clenow_data = obb.technical.clenow(
+    data=stock_data.results,
+    target="close",
+    period=90,
+)
+```
+
+---
+
+## Volatility indicators
+
+### Bollinger Bands
+
+Bollinger Bands consist of a middle SMA with upper and lower bands placed at `std` standard deviations. Bands widen during high volatility and narrow during low volatility.
+
+```python
+bbands_data = obb.technical.bbands(
+    data=stock_data.results,
+    target="close",
+    length=50,
+    std=2,
+    mamode="sma",
+)
+```
+
+<ParamField path="target" type="string" default="close">
+  Target column name.
+</ParamField>
+
+<ParamField path="length" type="number" default="50">
+  Number of periods for the middle band SMA.
+</ParamField>
+
+<ParamField path="std" type="number" default="2">
+  Number of standard deviations for the upper and lower bands.
+</ParamField>
+
+<ParamField path="mamode" type="string" default="sma">
+  Moving average type for the middle band. One of `sma`, `ema`, `wma`, `rma`.
+</ParamField>
+
+---
+
+### ATR — Average True Range
+
+ATR measures volatility by accounting for gaps and limit moves, not just close-to-close changes.
+
+```python
+atr_data = obb.technical.atr(
+    data=stock_data.results,
+    length=14,
+    mamode="rma",
+)
+```
+
+<ParamField path="length" type="number" default="14">
+  ATR lookback period.
+</ParamField>
+
+<ParamField path="mamode" type="string" default="rma">
+  Smoothing method. One of `rma`, `ema`, `sma`, `wma`.
+</ParamField>
+
+---
+
+### Keltner Channels
+
+Keltner Channels are ATR-based bands placed around a central EMA. Breaks above or below signal trend continuation.
+
+```python
+kc_data = obb.technical.kc(
+    data=stock_data.results,
+    length=20,
+    scalar=20,
+    mamode="ema",
+)
+```
+
+---
+
+### Donchian Channels
+
+Donchian Channels mark the highest high and lowest low over a given period, forming an upper band, lower band, and midrange.
+
+```python
+donchian_data = obb.technical.donchian(
+    data=stock_data.results,
+    lower_length=20,
+    upper_length=20,
+)
+```
+
+---
+
+### Realized Volatility Cones
+
+Cones map realized volatility quantiles over multiple rolling windows to visualize the historical range of volatility.
+
+```python
+cones_data = obb.technical.cones(
+    data=stock_data.results,
+    lower_q=0.25,
+    upper_q=0.75,
+    model="std",
+)
+```
+
+<ParamField path="lower_q" type="number" default="0.25">
+  Lower quantile for the volatility range.
+</ParamField>
+
+<ParamField path="upper_q" type="number" default="0.75">
+  Upper quantile for the volatility range.
+</ParamField>
+
+<ParamField path="model" type="string" default="std">
+  Volatility model. One of `std`, `parkinson`, `garman_klass`, `hodges_tompkins`, `rogers_satchell`, `yang_zhang`.
+</ParamField>
+
+---
+
+## Volume indicators
+
+### OBV — On Balance Volume
+
+OBV is a running total of volume, adding volume on up days and subtracting it on down days. A rising OBV confirms an uptrend; a flat OBV during a rising price signals a potential reversal.
+
+```python
+obv_data = obb.technical.obv(
+    data=stock_data.results,
+    offset=0,
+)
+```
+
+---
+
+### AD — Accumulation/Distribution Line
+
+The AD line multiplies volume by the Close Location Value (CLV), which reflects where the close falls within the period's high-low range.
+
+```python
+ad_data = obb.technical.ad(
+    data=stock_data.results,
+    offset=0,
+)
+```
+
+---
+
+### ADOSC — Accumulation/Distribution Oscillator
+
+Also known as the Chaikin Oscillator. This is a momentum indicator of the AD line. Readings above zero indicate net buying pressure; readings below zero indicate net selling pressure.
+
+```python
+adosc_data = obb.technical.adosc(
+    data=stock_data.results,
+    fast=3,
+    slow=10,
+)
+```
+
+---
+
+### VWAP — Volume Weighted Average Price
+
+VWAP measures the average price weighted by volume over a session. It is commonly used as a benchmark for intraday trading direction.
+
+```python
+vwap_data = obb.technical.vwap(
+    data=stock_data.results,
+    anchor="D",
+)
+```
+
+<ParamField path="anchor" type="string" default="D">
+  Anchor period for VWAP reset. Uses pandas offset aliases (e.g., `D` for daily, `W` for weekly).
+</ParamField>
+
+---
+
+## Trend and structure
+
+### Ichimoku Cloud
+
+The Ichimoku Cloud defines support and resistance, identifies trend direction, and gauges momentum in a single view.
+
+```python
+ichimoku_data = obb.technical.ichimoku(
+    data=stock_data.results,
+    conversion=9,
+    base=26,
+    lagging=52,
+    offset=26,
+    lookahead=False,
+)
+```
+
+<ParamField path="conversion" type="number" default="9">
+  Tenkan-sen (conversion line) period.
+</ParamField>
+
+<ParamField path="base" type="number" default="26">
+  Kijun-sen (base line) period.
+</ParamField>
+
+<ParamField path="lagging" type="number" default="52">
+  Senkou Span B (lagging span) period.
+</ParamField>
+
+<ParamField path="lookahead" type="boolean" default="false">
+  When `False`, drops the Chikou Span column to prevent data leakage.
+</ParamField>
+
+---
+
+### Fibonacci Retracement
+
+Identifies significant support and resistance levels based on the Fibonacci sequence applied to a price range.
+
+```python
+fib_data = obb.technical.fib(
+    data=stock_data.results,
+    period=120,
+    close_column="close",
+)
+```
+
+<ParamField path="period" type="number" default="120">
+  Number of periods to use when finding the high and low price range.
+</ParamField>
+
+---
+
+### Center of Gravity
+
+The Center of Gravity oscillator anticipates price reversals by tracking the center of the price range over a given period. It works best in range-bound markets.
+
+```python
+cg_data = obb.technical.cg(
+    data=stock_data.results,
+    length=14,
+)
+```
+
+---
+
+## Multi-symbol analysis
+
+### Relative Rotation
+
+Calculates Relative Strength Ratio and Relative Strength Momentum for a group of symbols against a benchmark. This is the basis for Relative Rotation Graphs (RRG).
+
+<CodeGroup>
+
+```python equities
+stock_data = obb.equity.price.historical(
+    symbol="AAPL,MSFT,GOOGL,META,AMZN,TSLA,SPY",
+    start_date="2022-01-01",
+    provider="yfinance",
+)
+rr_data = obb.technical.relative_rotation(
+    data=stock_data.results,
+    benchmark="SPY",
+)
+rs_ratios = rr_data.results.rs_ratios
+rs_momentum = rr_data.results.rs_momentum
+```
+
+```python crypto
+crypto_data = obb.crypto.price.historical(
+    symbol="BTCUSD,ETHUSD,SOLUSD",
+    start_date="2021-01-01",
+    provider="yfinance",
+)
+rr_data = obb.technical.relative_rotation(
+    data=crypto_data.results,
+    benchmark="BTC-USD",
+    long_period=365,
+    short_period=30,
+    window=30,
+    trading_periods=365,
+)
+```
+
+</CodeGroup>
+
+<ParamField path="benchmark" type="string" required>
+  Symbol to use as the benchmark for all relative strength calculations.
+</ParamField>
+
+<ParamField path="study" type="string" default="price">
+  Data point for calculations. One of `price`, `volume`, `volatility`.
+</ParamField>
+
+<ParamField path="long_period" type="number" default="252">
+  Long period for momentum calculation. Adjust for non-daily data (e.g., `12` for monthly).
+</ParamField>
+
+<ParamField path="short_period" type="number" default="21">
+  Short period for momentum calculation.
+</ParamField>
+
+<ParamField path="trading_periods" type="number" default="252">
+  Number of trading periods per year. Set to `365` for crypto.
+</ParamField>
+
+---
+
+## Complete workflow example
+
+```python
+from openbb import obb
+
+# Get 1 year of daily TSLA price data
+data = obb.equity.price.historical(
+    symbol="TSLA",
+    start_date="2023-01-01",
+    provider="yfinance",
+)
+
+# Apply EMA (50-period) and RSI (14-period)
+ema = obb.technical.ema(data=data.results, target="close", length=50)
+rsi = obb.technical.rsi(data=data.results, target="close", length=14)
+
+# Apply MACD with standard settings
+macd = obb.technical.macd(
+    data=data.results,
+    target="close",
+    fast=12,
+    slow=26,
+    signal=9,
+)
+
+# Apply Bollinger Bands
+bbands = obb.technical.bbands(
+    data=data.results,
+    target="close",
+    length=20,
+    std=2,
+)
+
+# Convert results to DataFrames
+df_ema = ema.to_df()
+df_rsi = rsi.to_df()
+df_macd = macd.to_df()
+df_bbands = bbands.to_df()
+```
+
+## All available commands
+
+<AccordionGroup>
+  <Accordion title="Moving averages">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.technical.ema` | Exponential Moving Average |
+    | `obb.technical.sma` | Simple Moving Average |
+    | `obb.technical.wma` | Weighted Moving Average |
+    | `obb.technical.hma` | Hull Moving Average |
+    | `obb.technical.zlma` | Zero Lag Exponential Moving Average |
+  </Accordion>
+  <Accordion title="Momentum">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.technical.rsi` | Relative Strength Index |
+    | `obb.technical.macd` | Moving Average Convergence Divergence |
+    | `obb.technical.stoch` | Stochastic Oscillator |
+    | `obb.technical.cci` | Commodity Channel Index |
+    | `obb.technical.aroon` | Aroon Indicator |
+    | `obb.technical.adx` | Average Directional Index |
+    | `obb.technical.fisher` | Fisher Transform |
+    | `obb.technical.demark` | Demark Sequential |
+    | `obb.technical.clenow` | Clenow Volatility Adjusted Momentum |
+  </Accordion>
+  <Accordion title="Volatility">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.technical.bbands` | Bollinger Bands |
+    | `obb.technical.atr` | Average True Range |
+    | `obb.technical.kc` | Keltner Channels |
+    | `obb.technical.donchian` | Donchian Channels |
+    | `obb.technical.cones` | Realized Volatility Cones |
+  </Accordion>
+  <Accordion title="Volume">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.technical.obv` | On Balance Volume |
+    | `obb.technical.ad` | Accumulation/Distribution Line |
+    | `obb.technical.adosc` | Accumulation/Distribution Oscillator (Chaikin) |
+    | `obb.technical.vwap` | Volume Weighted Average Price |
+  </Accordion>
+  <Accordion title="Trend and structure">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.technical.ichimoku` | Ichimoku Cloud |
+    | `obb.technical.fib` | Fibonacci Retracement Levels |
+    | `obb.technical.cg` | Center of Gravity |
+    | `obb.technical.relative_rotation` | Relative Rotation (RRG) |
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,377 @@
+---
+title: "Equity Estimates"
+description: "Analyst estimates commands — price targets, consensus ratings, forward EPS/EBITDA/sales/PE, and analyst search."
+keywords: ["equity", "estimates", "price target", "consensus", "analyst", "forward EPS", "forward EBITDA", "forward sales", "forward PE"]
+---
+
+Commands for accessing analyst estimates, price targets, and forward-looking financial projections. All commands are available under the `obb.equity.estimates` namespace.
+
+<Note>
+  Forward estimates commands accept optional `fiscal_year` and `fiscal_period` parameters to filter results to a specific period. When omitted, all available periods are returned.
+</Note>
+
+---
+
+## Price targets
+
+### `obb.equity.estimates.price_target`
+
+Get analyst price targets for a given company.
+
+**REST path:** `GET /api/v1/equity/estimates/price_target`
+
+**Providers:** `benzinga`, `fmp`
+
+<ParamField query="symbol" type="string">
+  Stock ticker symbol (e.g. `AAPL`). Optional — when omitted, returns targets across all covered tickers.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum number of records to return.
+</ParamField>
+
+<ParamField query="start_date" type="string">
+  Start date in `YYYY-MM-DD` format to filter published price targets.
+</ParamField>
+
+<ParamField query="end_date" type="string">
+  End date in `YYYY-MM-DD` format to filter published price targets.
+</ParamField>
+
+<ParamField query="action" type="string">
+  Filter by analyst rating action (provider-specific). Example: `downgrades`, `upgrades`, `initiates`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# All recent price targets
+result = obb.equity.estimates.price_target(provider="benzinga")
+
+# MSFT downgrades between two dates
+result = obb.equity.estimates.price_target(
+    symbol="msft",
+    start_date="2020-01-01",
+    end_date="2024-02-16",
+    limit=10,
+    action="downgrades",
+    provider="benzinga",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/estimates/price_target?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `published_date`, `published_time`, `symbol`, `exchange`, `company_name`, `analyst_name`, `analyst_firm`, `currency`, `price_target`, `adj_price_target`, `price_target_previous`, `price_when_posted`, `rating_current`, `rating_previous`, `action`
+
+---
+
+### `obb.equity.estimates.consensus`
+
+Get the consensus price target and analyst recommendation for a given company.
+
+**REST path:** `GET /api/v1/equity/estimates/consensus`
+
+**Providers:** `fmp`, `yfinance`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol. Accepts comma-separated values for multiple symbols.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.estimates.consensus(symbol="AAPL", provider="fmp")
+
+# Multiple symbols
+result = obb.equity.estimates.consensus(symbol="AAPL,MSFT", provider="yfinance")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/estimates/consensus?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+## Historical analyst estimates
+
+### `obb.equity.estimates.historical`
+
+Get historical analyst estimates for earnings and revenue for a given company.
+
+**REST path:** `GET /api/v1/equity/estimates/historical`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.estimates.historical(symbol="AAPL", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/estimates/historical?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `symbol`, `date`, `estimated_revenue_low`, `estimated_revenue_high`, `estimated_revenue_avg`, `estimated_ebitda_low`, `estimated_ebitda_high`, `estimated_ebitda_avg`, `estimated_ebit_low`, `estimated_ebit_high`, `estimated_ebit_avg`, `estimated_net_income_low`, `estimated_net_income_high`, `estimated_net_income_avg`, `estimated_eps_avg`, `estimated_eps_high`, `estimated_eps_low`, `number_analyst_estimated_revenue`, `number_analysts_estimated_eps`
+
+---
+
+## Analyst search
+
+### `obb.equity.estimates.analyst_search`
+
+Search for analysts and review their forecast track records.
+
+**REST path:** `GET /api/v1/equity/estimates/analyst_search`
+
+**Providers:** `benzinga`
+
+<ParamField query="firm_name" type="string">
+  Name of the analyst firm to search for (e.g. `Wedbush`).
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# Browse all analysts
+result = obb.equity.estimates.analyst_search(provider="benzinga")
+
+# Filter by firm
+result = obb.equity.estimates.analyst_search(
+    firm_name="Wedbush",
+    provider="benzinga",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/estimates/analyst_search?firm_name=Wedbush&provider=benzinga"
+```
+
+</CodeGroup>
+
+---
+
+## Forward estimates
+
+### `obb.equity.estimates.forward_sales`
+
+Get forward sales estimates for a given company.
+
+**REST path:** `GET /api/v1/equity/estimates/forward_sales`
+
+**Providers:** `intrinio`
+
+<ParamField query="symbol" type="string">
+  Stock ticker symbol. Optional — returns data for all covered tickers when omitted.
+</ParamField>
+
+<ParamField query="fiscal_year" type="number">
+  Filter by fiscal year (e.g. `2025`).
+</ParamField>
+
+<ParamField query="fiscal_period" type="string">
+  Filter by fiscal period. Options: `fy`, `q1`, `q2`, `q3`, `q4`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.estimates.forward_sales(symbol="AAPL", provider="intrinio")
+
+# Specific fiscal period
+result = obb.equity.estimates.forward_sales(
+    fiscal_year=2025,
+    fiscal_period="fy",
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/estimates/forward_sales?symbol=AAPL&provider=intrinio"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.estimates.forward_ebitda`
+
+Get forward EBITDA estimates for a given company.
+
+**REST path:** `GET /api/v1/equity/estimates/forward_ebitda`
+
+**Providers:** `intrinio`, `fmp`
+
+<ParamField query="symbol" type="string">
+  Stock ticker symbol. Accepts comma-separated values. Optional when using `intrinio`.
+</ParamField>
+
+<ParamField query="fiscal_period" type="string">
+  Filter by fiscal period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.estimates.forward_ebitda(provider="intrinio")
+
+result = obb.equity.estimates.forward_ebitda(
+    symbol="AAPL",
+    fiscal_period="annual",
+    provider="intrinio",
+)
+
+# Multiple symbols via fmp
+result = obb.equity.estimates.forward_ebitda(
+    symbol="AAPL,MSFT",
+    fiscal_period="quarter",
+    provider="fmp",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/estimates/forward_ebitda?symbol=AAPL&fiscal_period=annual&provider=intrinio"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.estimates.forward_eps`
+
+Get forward EPS (earnings per share) estimates for a given company.
+
+**REST path:** `GET /api/v1/equity/estimates/forward_eps`
+
+**Providers:** `intrinio`
+
+<ParamField query="symbol" type="string">
+  Stock ticker symbol. Optional — returns data for all covered tickers when omitted.
+</ParamField>
+
+<ParamField query="fiscal_year" type="number">
+  Filter by fiscal year (e.g. `2025`).
+</ParamField>
+
+<ParamField query="fiscal_period" type="string">
+  Filter by fiscal period. Options: `fy`, `q1`, `q2`, `q3`, `q4`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.estimates.forward_eps(symbol="AAPL", provider="intrinio")
+
+# Specific fiscal year and period
+result = obb.equity.estimates.forward_eps(
+    fiscal_year=2025,
+    fiscal_period="fy",
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/estimates/forward_eps?symbol=AAPL&provider=intrinio"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.estimates.forward_pe`
+
+Get forward price-to-earnings (PE) estimates for a given company or set of companies.
+
+**REST path:** `GET /api/v1/equity/estimates/forward_pe`
+
+**Providers:** `intrinio`
+
+<ParamField query="symbol" type="string">
+  Stock ticker symbol. Accepts comma-separated values. Optional — returns data for all covered tickers when omitted.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.estimates.forward_pe(provider="intrinio")
+
+# Multiple symbols
+result = obb.equity.estimates.forward_pe(
+    symbol="AAPL,MSFT,GOOG",
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/estimates/forward_pe?symbol=AAPL&provider=intrinio"
+```
+
+</CodeGroup>

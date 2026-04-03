@@ -1,0 +1,212 @@
+---
+title: "Data providers"
+description: "OpenBB integrates 30+ financial data sources behind a single interface. Choose a provider per command or configure a default — the API stays the same."
+keywords: ["providers", "data sources", "fmp", "yfinance", "intrinio", "fred", "openbb", "api key"]
+---
+
+A provider is a self-contained package that connects a financial data source to the OpenBB standardization layer. Each provider implements one or more `Fetcher` classes that handle authentication, HTTP requests, and data transformation — all behind a uniform interface.
+
+From your perspective, switching providers is a single keyword argument:
+
+```python
+from openbb import obb
+
+# Yahoo Finance (free, no key required)
+obb.equity.price.historical("AAPL", provider="yfinance")
+
+# Financial Modeling Prep (requires API key)
+obb.equity.price.historical("AAPL", provider="fmp")
+
+# Intrinio (requires API key)
+obb.equity.price.historical("AAPL", provider="intrinio")
+```
+
+The returned `OBBject` structure is identical regardless of provider. Only the fields inside `results` — and any provider-specific `extra_params` — differ.
+
+## Built-in providers
+
+These providers are included with a standard `pip install openbb`.
+
+### Free providers
+
+No API key required for basic usage.
+
+<CardGroup cols={2}>
+  <Card title="yfinance" icon="yahoo">
+    Yahoo Finance. Equities, ETFs, crypto, indices, options, futures, and news. No key required.
+  </Card>
+  <Card title="federal_reserve" icon="landmark">
+    US Federal Reserve. Treasury rates, money supply, and central bank holdings.
+  </Card>
+  <Card title="sec" icon="building-columns">
+    SEC EDGAR. Company filings, insider trading, institutional ownership, and form 13F.
+  </Card>
+  <Card title="government_us" icon="flag-usa">
+    US government data. Congressional trade disclosures and equity government trades.
+  </Card>
+  <Card title="bls" icon="chart-bar">
+    Bureau of Labor Statistics. Employment, CPI, and PPI series.
+  </Card>
+  <Card title="cftc" icon="chart-candlestick">
+    CFTC Commitments of Traders reports and COT search.
+  </Card>
+  <Card title="congress_gov" icon="scroll">
+    US Congress legislative data and government trade disclosures.
+  </Card>
+  <Card title="imf" icon="globe">
+    International Monetary Fund. Direction of trade, economic indicators, and balance of payments.
+  </Card>
+  <Card title="oecd" icon="earth-europe">
+    OECD. GDP forecasts, country interest rates, composite leading indicators, and share price indices.
+  </Card>
+</CardGroup>
+
+### Providers requiring API keys
+
+These providers are included in the default installation but require a free or paid API key.
+
+<CardGroup cols={2}>
+  <Card title="fred" icon="chart-line">
+    Federal Reserve Economic Data (St. Louis Fed). Thousands of macroeconomic series. Free key required.
+  </Card>
+  <Card title="tradingeconomics" icon="chart-mixed">
+    Trading Economics. Global economic indicators and country profiles. Free tier available.
+  </Card>
+  <Card title="econdb" icon="database">
+    EconDB. Macroeconomic databases and aggregated series. Free tier available.
+  </Card>
+  <Card title="fmp" icon="briefcase">
+    Financial Modeling Prep. Equities, ETFs, forex, crypto, filings, and screener. Free tier available.
+  </Card>
+  <Card title="intrinio" icon="chart-scatter">
+    Intrinio. Equities, options, ETFs, and financial attributes. Paid subscription.
+  </Card>
+  <Card title="tiingo" icon="server">
+    Tiingo. Equities, crypto, forex, and news. Free tier available.
+  </Card>
+  <Card title="benzinga" icon="newspaper">
+    Benzinga. Market-moving news, analyst ratings, and price targets. Paid key required.
+  </Card>
+  <Card title="us_eia" icon="bolt">
+    US Energy Information Administration. Petroleum status reports and short-term energy outlook.
+  </Card>
+</CardGroup>
+
+## Community providers
+
+Community providers are optional. Install them individually or with `pip install "openbb[all]"`.
+
+| Provider | Package | Credential key |
+|---|---|---|
+| Alpha Vantage | `openbb-alpha-vantage` | `alpha_vantage_api_key` |
+| CBOE | `openbb-cboe` | none |
+| Deribit | `openbb-deribit` | `deribit_client_id`, `deribit_client_secret` |
+| ECB | `openbb-ecb` | none |
+| Fama-French | `openbb-famafrench` | none |
+| FINRA | `openbb-finra` | none |
+| Finviz | `openbb-finviz` | none |
+| Multpl | `openbb-multpl` | none |
+| Nasdaq | `openbb-nasdaq` | `nasdaq_api_key` |
+| Seeking Alpha | `openbb-seeking-alpha` | none |
+| Stockgrid | `openbb-stockgrid` | none |
+| TMX | `openbb-tmx` | none |
+| Tradier | `openbb-tradier` | `tradier_api_key` |
+| WSJ | `openbb-wsj` | none |
+
+<Note>
+  Community providers are built and primarily maintained by OpenBB but may have less frequent update cycles than core providers.
+</Note>
+
+## Selecting a provider
+
+Pass `provider` as a keyword argument to any command. If you omit it, OpenBB uses the first provider in its resolution order that has valid credentials.
+
+```python
+from openbb import obb
+
+# Explicit provider selection
+result = obb.equity.price.historical("AAPL", provider="fmp")
+print(result.provider)  # "fmp"
+
+# Omit provider — OpenBB resolves automatically
+result = obb.equity.price.historical("AAPL")
+print(result.provider)  # whichever provider resolved first
+```
+
+## Multiple providers for the same endpoint
+
+Many endpoints are implemented by several providers. You can query each in sequence to compare or fall back:
+
+```python
+from openbb import obb
+
+providers = ["fmp", "intrinio", "yfinance"]
+
+for p in providers:
+    try:
+        result = obb.equity.price.historical("AAPL", provider=p)
+        print(f"{p}: {len(result.results)} rows")
+    except Exception as e:
+        print(f"{p} failed: {e}")
+```
+
+<Tip>
+  Use `result.provider` to log which provider actually served each response — especially useful when the provider argument is omitted and OpenBB resolves automatically.
+</Tip>
+
+## Provider-specific parameters
+
+Standard parameters (like `symbol`, `start_date`, `end_date`) work across all providers that implement an endpoint. Providers can also expose extra parameters that only they support.
+
+```python
+from openbb import obb
+
+# FMP-specific: interval and adjustment type
+result = obb.equity.price.historical(
+    "AAPL",
+    provider="fmp",
+    interval="1h",                       # FMP extra param
+    adjustment="splits_and_dividends",   # FMP extra param
+)
+```
+
+Extra parameters are validated by the provider's `QueryParams` model. Passing an unsupported extra parameter to a different provider is silently ignored.
+
+## Extension types
+
+OpenBB providers are packaged as Python extensions in three tiers:
+
+<AccordionGroup>
+  <Accordion title="OpenBB extensions">
+    Built and maintained by the OpenBB team. Included in the default `openbb` package (e.g., `openbb-fmp`, `openbb-yfinance`, `openbb-fred`). Updated with each OpenBB release.
+  </Accordion>
+  <Accordion title="Community extensions">
+    Built by the community, primarily maintained by OpenBB. Available as optional extras (e.g., `openbb-nasdaq`, `openbb-cboe`). Reviewed by OpenBB before inclusion.
+  </Accordion>
+  <Accordion title="Independent extensions">
+    Built and maintained by third parties. Published to PyPI independently. Follow the same `Provider` + `Fetcher` pattern but are not bundled with OpenBB.
+  </Accordion>
+</AccordionGroup>
+
+## How providers work internally
+
+Each provider package defines a `Provider` instance and registers one or more `Fetcher` classes against data model keys:
+
+```python
+from openbb_core.provider.abstract.provider import Provider
+
+fmp_provider = Provider(
+    name="fmp",
+    website="https://financialmodelingprep.com",
+    description="Financial Modeling Prep data provider.",
+    credentials=["api_key"],   # becomes "fmp_api_key" in user settings
+    fetcher_dict={
+        "EquityHistorical": FMPEquityHistoricalFetcher,
+        "EquityQuote": FMPEquityQuoteFetcher,
+        # ...
+    },
+    repr_name="Financial Modeling Prep (FMP)",
+)
+```
+
+The `credentials` list entries are automatically namespaced: `["api_key"]` becomes `fmp_api_key` in `user_settings.json`. See [Credentials](/concepts/credentials) for how to set them.

@@ -1,80 +1,146 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick Start"
+description: "Get from zero to your first financial dataset in under 5 minutes."
+keywords: ["openbb", "quickstart", "python", "install", "equity", "obb"]
 ---
 
-## Get started in three steps
+This guide gets you from a fresh Python environment to querying live financial data in four steps.
 
-Get your documentation site running locally and make your first customization.
+<Note>
+Python 3.10 or later is required. Most data in this guide uses `yfinance`, which is free and requires no API key.
+</Note>
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Install OpenBB">
+    Install the `openbb` package from PyPI:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    pip install openbb
+    ```
 
-### Step 2: Deploy your changes
+    This installs the core package along with all standard extensions (equity, crypto, economy, derivatives, fixed income, ETF, index, news, commodity, currency) and the default set of data providers.
+  </Step>
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+  <Step title="Import and run your first query">
+    Open a Python shell or notebook and run:
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    ```python
+    from openbb import obb
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    result = obb.equity.price.historical("AAPL")
+    ```
 
-### Step 3: Go live
+    Every OpenBB command returns an `OBBject` — a standardized container with the data and metadata attached.
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```python
+    print(result)
+    # OBBject
+    # id: 0197f...
+    # results: [EquityHistoricalData(...), ...]
+    # provider: yfinance
+    # warnings: None
+    # chart: None
+    # extra: {'metadata': {...}}
+    ```
+
+    Convert to a pandas DataFrame with one call:
+
+    ```python
+    df = result.to_dataframe()
+    print(df.head())
+    #             open    high     low   close    volume
+    # date
+    # 2024-01-02  185.15  185.15  182.73  185.19  79009280
+    # 2024-01-03  184.22  185.88  183.43  184.25  55765280
+    # ...
+    ```
+  </Step>
+
+  <Step title="Try more data categories">
+    OpenBB covers a broad range of asset classes and economic data.
+
+    <CodeGroup>
+
+    ```python Fundamental data
+    from openbb import obb
+
+    # Income statement (trailing twelve months)
+    income = obb.equity.fundamental.income("AAPL", period="ttm")
+    df = income.to_dataframe()
+    ```
+
+    ```python Economic indicators
+    from openbb import obb
+
+    # U.S. GDP from FRED (free, no key required)
+    gdp = obb.economy.indicators(symbol="GDP", provider="fred")
+    df = gdp.to_dataframe()
+    ```
+
+    ```python Crypto prices
+    from openbb import obb
+
+    # Bitcoin historical price
+    btc = obb.crypto.price.historical("BTCUSD", provider="yfinance")
+    df = btc.to_dataframe()
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Switch providers">
+    Most endpoints support multiple providers. Pass `provider` to choose one explicitly:
+
+    ```python
+    from openbb import obb
+
+    # Default provider (yfinance)
+    result = obb.equity.price.historical("AAPL")
+
+    # Explicit provider
+    result = obb.equity.price.historical("AAPL", provider="fmp")
+    ```
+
+    The output schema stays the same regardless of which provider you use. Provider-specific fields are available under `result.results[0].model_extra` when present.
+
+    <Tip>
+    Run `obb.equity.price.historical?` in a notebook to see all available providers and parameters for any endpoint.
+    </Tip>
+  </Step>
+</Steps>
+
+## A note on providers and API keys
+
+Most endpoints work out of the box using `yfinance`, which requires no API key. Some providers — including FMP, Intrinio, Tiingo, and Benzinga — require credentials for access.
+
+To add API keys, create the file `~/.openbb_platform/user_settings.json`:
+
+```json
+{
+  "credentials": {
+    "fmp_api_key": "YOUR_FMP_KEY",
+    "intrinio_api_key": "YOUR_INTRINIO_KEY",
+    "tiingo_token": "YOUR_TIINGO_TOKEN",
+    "fred_api_key": "YOUR_FRED_KEY"
+  }
+}
+```
+
+See [Credentials](/concepts/credentials) for the full list of provider credential keys.
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Installation" icon="download" href="/installation">
+    Install optional extensions, the CLI, and configure your environment.
+  </Card>
+  <Card title="OBBject" icon="box" href="/concepts/obbject">
+    Learn about the standardized return type and what you can do with it.
+  </Card>
+  <Card title="Providers" icon="database" href="/concepts/providers">
+    Browse all 30+ integrated data providers and their coverage.
+  </Card>
+  <Card title="REST API" icon="server" href="/data-access/rest-api">
+    Expose OpenBB data over HTTP using the built-in FastAPI server.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

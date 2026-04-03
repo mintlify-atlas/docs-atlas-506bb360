@@ -1,0 +1,234 @@
+---
+title: "OBBject"
+description: "The standard return type for every OpenBB command. A typed, Pydantic-validated container that carries results, provider metadata, warnings, and chart state."
+keywords: ["obbject", "return type", "dataframe", "to_dataframe", "to_dict", "openbb", "results"]
+---
+
+Every OpenBB command returns an `OBBject[T]`. It is a generic, Pydantic v2 model that wraps the results of a data query and provides a consistent interface for accessing, converting, and displaying data — regardless of which provider returned it.
+
+```python
+from openbb import obb
+
+result = obb.equity.price.historical("AAPL", provider="fmp")
+print(result)
+```
+
+```
+OBBject
+
+results: [FMPEquityHistoricalData(date=2024-01-02, open=185.25, high=185.88, ...
+provider: fmp
+warnings: None
+chart: None
+extra: {}
+```
+
+## Fields
+
+<ResponseField name="results" type="T | None" default="None">
+  The query results. The type `T` is the provider-specific data model — typically a `list[Data]` subclass. Returns `None` when no data is available.
+</ResponseField>
+
+<ResponseField name="provider" type="str | None" default="None">
+  The name of the provider that returned the data (e.g. `"fmp"`, `"yfinance"`, `"fred"`). Set automatically by the query executor.
+</ResponseField>
+
+<ResponseField name="warnings" type="list[Warning_] | None" default="None">
+  A list of non-fatal warnings raised during the request. Each entry carries a category and a message. `None` when no warnings occurred.
+</ResponseField>
+
+<ResponseField name="chart" type="Chart | None" default="None">
+  A chart object populated after calling `.to_chart()`. Requires the `openbb-charting` extension. `None` by default.
+</ResponseField>
+
+<ResponseField name="extra" type="dict[str, Any]" default="{}">
+  A dictionary of extra metadata. When a provider returns annotated results (pagination tokens, message lists, etc.), they are stored under `extra["results_metadata"]`.
+</ResponseField>
+
+## Methods
+
+### `.to_dataframe()`
+
+Convert `results` to a pandas `DataFrame`. This is the most common way to consume OpenBB data.
+
+```python
+def to_dataframe(
+    index: str | None = "date",
+    sort_by: str | None = None,
+    ascending: bool | None = None,
+) -> DataFrame
+```
+
+<ParamField query="index" type="str | None" default='"date"'>
+  Column name to use as the DataFrame index. Pass `None` to keep results as a plain integer index.
+</ParamField>
+
+<ParamField query="sort_by" type="str | None" default="None">
+  Column name to sort results by after conversion.
+</ParamField>
+
+<ParamField query="ascending" type="bool | None" default="None">
+  Sort direction when `sort_by` is set. Defaults to `True` (ascending).
+</ParamField>
+
+`to_dataframe` handles the following `results` shapes automatically:
+
+| Results type | Behaviour |
+|---|---|
+| `list[BaseModel]` | Each model becomes a row |
+| `list[dict]` | Each dict becomes a row |
+| `list[list \| str \| int \| float]` | Passed directly to `DataFrame()` |
+| `dict[str, list \| dict \| BaseModel]` | Transposed or nested as columns |
+| `BaseModel` | Serialized and pivoted to a single-row frame |
+| `str` | Wrapped in a single-element list |
+
+<CodeGroup>
+
+```python Default usage
+result = obb.equity.price.historical("AAPL", provider="fmp")
+
+# Indexed by "date" by default
+df = result.to_dataframe()
+print(df.head())
+```
+
+```python No index
+# Keep a plain integer index
+df = result.to_dataframe(index=None)
+```
+
+```python Sort results
+# Sort by trading volume, descending
+df = result.to_dataframe(sort_by="volume", ascending=False)
+```
+
+</CodeGroup>
+
+`.to_df()` is an alias for `.to_dataframe()` and accepts the same parameters.
+
+---
+
+### `.to_dict()`
+
+Convert `results` to a Python dictionary via pandas `to_dict`.
+
+```python
+def to_dict(
+    orient: Literal["dict", "list", "series", "split", "tight", "records", "index"] = "list",
+) -> dict | list[dict]
+```
+
+<ParamField query="orient" type="str" default='"list"'>
+  The pandas `to_dict` orientation. Use `"records"` for a list of row dicts, `"list"` for a dict of column lists.
+</ParamField>
+
+```python
+result = obb.equity.price.historical("AAPL", provider="fmp")
+
+# Dict of column lists (default)
+data = result.to_dict()
+# {"open": [185.25, ...], "close": [185.92, ...], ...}
+
+# List of row dicts
+records = result.to_dict(orient="records")
+# [{"open": 185.25, "close": 185.92, ...}, ...]
+```
+
+---
+
+### `.to_polars()`
+
+Convert `results` to a Polars `DataFrame`. Requires `polars` and `pyarrow`.
+
+```python
+# pip install polars pyarrow
+polars_df = result.to_polars()
+```
+
+---
+
+### `.to_numpy()`
+
+Convert `results` to a NumPy `ndarray`.
+
+```python
+arr = result.to_numpy()
+```
+
+---
+
+### `.to_llm()`
+
+Serialize `results` to a JSON string in records format with ISO 8601 timestamps. Useful for passing financial data directly to an LLM.
+
+```python
+json_str = result.to_llm()
+# '[{"date": "2024-01-02T00:00:00", "open": 185.25, ...}]'
+```
+
+---
+
+### `.to_chart()` and `.show()`
+
+Generate and display a chart. Requires the `openbb-charting` extension (`pip install openbb-charting`).
+
+```python
+result.to_chart()
+result.show()
+```
+
+After calling `.to_chart()`, the `chart` field is populated with the `Chart` object. Calling `.show()` without a chart raises an `OpenBBError`.
+
+---
+
+### `.model_dump()`
+
+Full Pydantic serialization of the entire `OBBject` including all fields.
+
+```python
+serialized = result.model_dump()
+# {
+#   "results": [...],
+#   "provider": "fmp",
+#   "warnings": None,
+#   "chart": None,
+#   "extra": {}
+# }
+```
+
+## Generic type parameter
+
+`OBBject` is generic over `T` — the type of `results`. The platform infers `T` automatically from the provider's data model. You can annotate it explicitly for type checking:
+
+```python
+from openbb_core.app.model.obbject import OBBject
+from openbb_core.provider.abstract.data import Data
+
+result: OBBject[list[Data]] = obb.equity.price.historical("AAPL")
+```
+
+## Working with warnings
+
+When a provider returns partial data or raises a non-fatal issue, a `Warning_` entry is appended to `warnings`. Always check this field in production workflows.
+
+```python
+result = obb.equity.price.historical("AAPL,INVALID", provider="fmp")
+
+if result.warnings:
+    for w in result.warnings:
+        print(w.category, w.message)
+```
+
+## Accessing extra metadata
+
+Some providers return metadata alongside results — for example, pagination state or per-symbol messages. This information is stored in `extra["results_metadata"]`.
+
+```python
+result = obb.equity.price.historical("AAPL", provider="fmp")
+print(result.extra)
+# {"results_metadata": {"next_page": None, "messages": []}}
+```
+
+<Note>
+  `extra` is always a plain `dict`. Its contents depend on the provider. Not all providers populate `results_metadata`.
+</Note>

@@ -1,0 +1,442 @@
+---
+title: "Quantitative Analysis"
+description: "Statistical and performance analytics for time series data using the obb.quantitative namespace."
+---
+
+<Note>
+  The quantitative analysis extension is optional and must be installed separately.
+
+  ```bash
+  pip install "openbb[quantitative]"
+  ```
+</Note>
+
+The `obb.quantitative` namespace provides statistical tests, rolling metrics, and performance ratios for financial time series data. Functions are organized into three sub-namespaces:
+
+- `obb.quantitative` — normality tests, CAPM, unit root tests, summary statistics
+- `obb.quantitative.rolling` — rolling window statistics (mean, stdev, variance, skew, kurtosis, quantile)
+- `obb.quantitative.stats` — single-value statistics over the full series
+- `obb.quantitative.performance` — risk-adjusted performance metrics (Sharpe, Sortino, Omega)
+
+## Usage pattern
+
+All quantitative functions accept a list of `Data` objects or a DataFrame converted with `.to_df()`. Most functions require you to specify a `target` column name.
+
+```python
+from openbb import obb
+
+# Fetch price data
+stock_data = obb.equity.price.historical(
+    symbol="TSLA", start_date="2023-01-01", provider="fmp"
+).to_df()
+
+# Compute returns for rolling/performance metrics
+returns = stock_data["close"].pct_change().dropna()
+
+# Run a normality test on the close price
+result = obb.quantitative.normality(data=stock_data, target="close")
+print(result.results)
+```
+
+<Tip>
+  Performance and rolling functions typically expect a series of returns (daily pct_change), not raw prices. Summary statistics and normality tests can accept raw prices.
+</Tip>
+
+---
+
+## Core statistics
+
+### Normality tests
+
+Tests whether a data series follows a normal distribution. Returns results for five tests: Kurtosis, Skewness, Jarque-Bera, Shapiro-Wilk, and Kolmogorov-Smirnov.
+
+```python
+result = obb.quantitative.normality(
+    data=stock_data,
+    target="close",
+)
+
+# result.results contains statistic and p_value for each test
+print(result.results.jarque_bera)
+print(result.results.shapiro_wilk)
+```
+
+<ParamField path="target" type="string" required>
+  Name of the column to test.
+</ParamField>
+
+Each test returns a `statistic` and `p_value`. A low p-value (typically < 0.05) indicates the data is unlikely to be normally distributed.
+
+---
+
+### Summary statistics
+
+Returns descriptive statistics: count, mean, standard deviation, variance, min, max, and percentiles (10th, 25th, 50th, 75th, 90th).
+
+```python
+result = obb.quantitative.summary(
+    data=stock_data,
+    target="close",
+)
+print(result.results)
+```
+
+<ParamField path="target" type="string" required>
+  Name of the column to summarize.
+</ParamField>
+
+---
+
+### Unit root test
+
+Applies the Augmented Dickey-Fuller (ADF) and KPSS tests to determine whether a time series is stationary or contains a unit root. Essential for time series modeling and forecasting.
+
+```python
+result = obb.quantitative.unitroot_test(
+    data=stock_data,
+    target="close",
+    fuller_reg="c",
+    kpss_reg="c",
+)
+print(result.results.adf)
+print(result.results.kpss)
+```
+
+<ParamField path="target" type="string" required>
+  Name of the column to test.
+</ParamField>
+
+<ParamField path="fuller_reg" type="string" default="c">
+  Regression type for the ADF test. One of `c` (constant), `ct` (constant + trend), `ctt` (constant + linear + quadratic trend), `nc` (no constant).
+</ParamField>
+
+<ParamField path="kpss_reg" type="string" default="c">
+  Regression type for the KPSS test. One of `c` (constant), `ct` (constant + trend).
+</ParamField>
+
+---
+
+### CAPM — Capital Asset Pricing Model
+
+Estimates the expected return of an asset relative to market risk using the Fama-French factors. Returns the market risk (beta), systematic risk (R²), and idiosyncratic risk.
+
+```python
+result = obb.quantitative.capm(
+    data=stock_data,
+    target="close",
+)
+print(result.results.market_risk)      # beta
+print(result.results.systematic_risk)  # R²
+print(result.results.idiosyncratic_risk)
+```
+
+<ParamField path="target" type="string" required>
+  Name of the column containing asset prices.
+</ParamField>
+
+<Note>
+  `capm` fetches Fama-French factor data automatically and requires an internet connection.
+</Note>
+
+---
+
+## Rolling statistics
+
+All `obb.quantitative.rolling` commands calculate a metric over a sliding window and return a time series of values.
+
+### Rolling mean
+
+```python
+returns = stock_data["close"].pct_change().dropna()
+result = obb.quantitative.rolling.mean(
+    data=returns,
+    target="close",
+    window=252,
+)
+```
+
+<ParamField path="target" type="string" required>
+  Target column name.
+</ParamField>
+
+<ParamField path="window" type="number" default="21">
+  Rolling window size in periods.
+</ParamField>
+
+---
+
+### Rolling standard deviation
+
+```python
+result = obb.quantitative.rolling.stdev(
+    data=returns,
+    target="close",
+    window=252,
+)
+```
+
+---
+
+### Rolling variance
+
+```python
+result = obb.quantitative.rolling.variance(
+    data=returns,
+    target="close",
+    window=252,
+)
+```
+
+---
+
+### Rolling skew
+
+Measures the asymmetry of the return distribution over a rolling window. Positive skew indicates a tail extended to the right.
+
+```python
+result = obb.quantitative.rolling.skew(
+    data=returns,
+    target="close",
+    window=21,
+)
+```
+
+---
+
+### Rolling kurtosis
+
+Measures the "tailedness" of the return distribution over a rolling window. High kurtosis indicates a higher probability of extreme outcomes.
+
+```python
+result = obb.quantitative.rolling.kurtosis(
+    data=returns,
+    target="close",
+    window=252,
+)
+```
+
+---
+
+### Rolling quantile
+
+Calculates a rolling quantile and the rolling median simultaneously.
+
+```python
+result = obb.quantitative.rolling.quantile(
+    data=returns,
+    target="close",
+    window=252,
+    quantile_pct=0.25,
+)
+```
+
+<ParamField path="window" type="number" default="21">
+  Rolling window size.
+</ParamField>
+
+<ParamField path="quantile_pct" type="number" default="0.5">
+  Quantile to compute, expressed as a float between 0 and 1 (e.g., `0.25` for the 25th percentile).
+</ParamField>
+
+---
+
+## Full-series statistics
+
+`obb.quantitative.stats` functions compute a single aggregate value over the entire input series.
+
+<CodeGroup>
+
+```python mean and stdev
+returns = stock_data["close"].pct_change().dropna()
+
+mean_result = obb.quantitative.stats.mean(data=returns, target="close")
+stdev_result = obb.quantitative.stats.stdev(data=returns, target="close")
+```
+
+```python skew and kurtosis
+skew_result = obb.quantitative.stats.skew(data=returns, target="close")
+kurt_result = obb.quantitative.stats.kurtosis(data=returns, target="close")
+```
+
+```python variance and quantile
+var_result = obb.quantitative.stats.variance(data=returns, target="close")
+q75_result = obb.quantitative.stats.quantile(
+    data=returns, target="close", quantile_pct=0.75
+)
+```
+
+</CodeGroup>
+
+---
+
+## Performance metrics
+
+### Sharpe ratio (rolling)
+
+Calculates the rolling risk-adjusted return relative to a risk-free rate. A higher Sharpe ratio indicates better return per unit of volatility.
+
+```python
+returns = stock_data["close"].pct_change().dropna()
+
+result = obb.quantitative.performance.sharpe_ratio(
+    data=returns,
+    target="close",
+    rfr=0.0,
+    window=252,
+)
+```
+
+<ParamField path="target" type="string" required>
+  Target column name.
+</ParamField>
+
+<ParamField path="rfr" type="number" default="0.0">
+  Risk-free rate expressed as a decimal (e.g., `0.04` for 4%).
+</ParamField>
+
+<ParamField path="window" type="number" default="252">
+  Rolling window size in periods. The default of 252 corresponds to one trading year.
+</ParamField>
+
+---
+
+### Sortino ratio (rolling)
+
+Similar to the Sharpe ratio, but only penalizes downside volatility rather than total volatility.
+
+```python
+result = obb.quantitative.performance.sortino_ratio(
+    data=stock_data,
+    target="close",
+    target_return=0.0,
+    window=252,
+    adjusted=False,
+)
+```
+
+<ParamField path="target_return" type="number" default="0.0">
+  Minimum acceptable return (MAR). Returns below this threshold count as downside.
+</ParamField>
+
+<ParamField path="window" type="number" default="252">
+  Rolling window size in periods.
+</ParamField>
+
+<ParamField path="adjusted" type="boolean" default="false">
+  When `True`, adjusts the Sortino ratio to make it comparable to the Sharpe ratio.
+</ParamField>
+
+---
+
+### Omega ratio
+
+Calculates the Omega ratio across a range of return thresholds. The Omega ratio measures the probability-weighted ratio of gains to losses relative to a threshold return.
+
+```python
+result = obb.quantitative.performance.omega_ratio(
+    data=returns,
+    target="close",
+    threshold_start=0.0,
+    threshold_end=1.5,
+)
+# result.results is a list of OmegaModel(threshold, omega) values
+df = result.to_df()
+```
+
+<ParamField path="threshold_start" type="number" default="0.0">
+  Start of the threshold range.
+</ParamField>
+
+<ParamField path="threshold_end" type="number" default="1.5">
+  End of the threshold range. The function computes 50 evenly spaced thresholds between start and end.
+</ParamField>
+
+---
+
+## Complete workflow example
+
+```python
+from openbb import obb
+
+# Fetch historical price data
+stock_data = obb.equity.price.historical(
+    symbol="TSLA",
+    start_date="2023-01-01",
+    provider="fmp",
+).to_df()
+
+# Prepare a return series
+returns = stock_data["close"].pct_change().dropna()
+
+# 1. Check if returns are normally distributed
+normality = obb.quantitative.normality(data=stock_data, target="close")
+print("Jarque-Bera p-value:", normality.results.jarque_bera.p_value)
+
+# 2. Check for stationarity
+unitroot = obb.quantitative.unitroot_test(data=stock_data, target="close")
+print("ADF statistic:", unitroot.results.adf.statistic)
+
+# 3. Descriptive statistics
+summary = obb.quantitative.summary(data=stock_data, target="close")
+print(summary.results)
+
+# 4. Rolling performance metrics
+sharpe = obb.quantitative.performance.sharpe_ratio(
+    data=returns, target="close", window=252
+)
+sortino = obb.quantitative.performance.sortino_ratio(
+    data=stock_data, target="close", window=252
+)
+
+# 5. Rolling distribution statistics
+rolling_std = obb.quantitative.rolling.stdev(
+    data=returns, target="close", window=21
+)
+rolling_skew = obb.quantitative.rolling.skew(
+    data=returns, target="close", window=21
+)
+
+# Convert to DataFrames for analysis
+df_sharpe = sharpe.to_df()
+df_std = rolling_std.to_df()
+```
+
+## All available commands
+
+<AccordionGroup>
+  <Accordion title="Core (obb.quantitative)">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.quantitative.normality` | Normality tests (Jarque-Bera, Shapiro-Wilk, KS, skewness, kurtosis) |
+    | `obb.quantitative.summary` | Descriptive statistics |
+    | `obb.quantitative.unitroot_test` | ADF and KPSS unit root tests |
+    | `obb.quantitative.capm` | Capital Asset Pricing Model |
+  </Accordion>
+  <Accordion title="Rolling (obb.quantitative.rolling)">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.quantitative.rolling.mean` | Rolling average |
+    | `obb.quantitative.rolling.stdev` | Rolling standard deviation |
+    | `obb.quantitative.rolling.variance` | Rolling variance |
+    | `obb.quantitative.rolling.skew` | Rolling skewness |
+    | `obb.quantitative.rolling.kurtosis` | Rolling kurtosis |
+    | `obb.quantitative.rolling.quantile` | Rolling quantile and median |
+  </Accordion>
+  <Accordion title="Stats (obb.quantitative.stats)">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.quantitative.stats.mean` | Series mean |
+    | `obb.quantitative.stats.stdev` | Series standard deviation |
+    | `obb.quantitative.stats.variance` | Series variance |
+    | `obb.quantitative.stats.skew` | Series skewness |
+    | `obb.quantitative.stats.kurtosis` | Series kurtosis |
+    | `obb.quantitative.stats.quantile` | Series quantile at a given percentage |
+  </Accordion>
+  <Accordion title="Performance (obb.quantitative.performance)">
+    | Command | Description |
+    |---------|-------------|
+    | `obb.quantitative.performance.sharpe_ratio` | Rolling Sharpe ratio |
+    | `obb.quantitative.performance.sortino_ratio` | Rolling Sortino ratio |
+    | `obb.quantitative.performance.omega_ratio` | Omega ratio across threshold range |
+  </Accordion>
+</AccordionGroup>

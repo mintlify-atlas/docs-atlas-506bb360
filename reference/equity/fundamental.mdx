@@ -1,0 +1,1069 @@
+---
+title: "Equity Fundamentals"
+description: "Financial statement commands for equities — income, balance sheet, cash flow, ratios, dividends, filings, and more."
+keywords: ["equity", "fundamentals", "income statement", "balance sheet", "cash flow", "ratios", "dividends", "filings", "ESG"]
+---
+
+Commands for accessing a company's financial statements and fundamental data. All commands are available under the `obb.equity.fundamental` namespace.
+
+<Note>
+  Most commands accept a `period` parameter (`annual` or `quarter`) and a `limit` parameter controlling the number of periods returned. Provider availability varies per command.
+</Note>
+
+---
+
+## Financial statements
+
+### `obb.equity.fundamental.balance`
+
+Get the balance sheet for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/balance`
+
+**Providers:** `fmp`, `intrinio`, `yfinance`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol (e.g. `AAPL`).
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# Annual balance sheet (default)
+result = obb.equity.fundamental.balance(symbol="AAPL", provider="fmp")
+
+# Last 5 annual periods via Intrinio
+result = obb.equity.fundamental.balance(
+    symbol="AAPL",
+    period="annual",
+    limit=5,
+    provider="intrinio",
+)
+
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/balance?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+**Standard response fields:** `period_ending`, `fiscal_period`, `fiscal_year`
+
+---
+
+### `obb.equity.fundamental.balance_growth`
+
+Get the growth rates of a company's balance sheet items over time.
+
+**REST path:** `GET /api/v1/equity/fundamental/balance_growth`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.balance_growth(
+    symbol="AAPL",
+    limit=10,
+    provider="fmp",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/balance_growth?symbol=AAPL&limit=10&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.cash`
+
+Get the cash flow statement for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/cash`
+
+**Providers:** `fmp`, `intrinio`, `yfinance`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.cash(
+    symbol="AAPL",
+    period="annual",
+    limit=5,
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/cash?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.cash_growth`
+
+Get the growth rates of a company's cash flow statement items over time.
+
+**REST path:** `GET /api/v1/equity/fundamental/cash_growth`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.cash_growth(
+    symbol="AAPL",
+    limit=10,
+    provider="fmp",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/cash_growth?symbol=AAPL&limit=10&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.income`
+
+Get the income statement for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/income`
+
+**Providers:** `fmp`, `intrinio`, `yfinance`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.income(
+    symbol="AAPL",
+    period="annual",
+    limit=5,
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/income?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.income_growth`
+
+Get the growth rates of a company's income statement items over time.
+
+**REST path:** `GET /api/v1/equity/fundamental/income_growth`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.income_growth(
+    symbol="AAPL",
+    limit=10,
+    period="annual",
+    provider="fmp",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/income_growth?symbol=AAPL&limit=10&period=annual&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.reported_financials`
+
+Get financial statements exactly as reported by the company to the SEC, with as-filed line items.
+
+**REST path:** `GET /api/v1/equity/fundamental/reported_financials`
+
+**Providers:** `intrinio`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="statement_type" type="string" default="balance">
+  Type of financial statement. Options: `balance`, `income`, `cash`.
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# As-reported balance sheet
+result = obb.equity.fundamental.reported_financials(
+    symbol="AAPL",
+    statement_type="balance",
+    period="annual",
+    limit=10,
+    provider="intrinio",
+)
+
+# As-reported income statement
+result = obb.equity.fundamental.reported_financials(
+    symbol="AAPL",
+    statement_type="income",
+    provider="intrinio",
+)
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/reported_financials?symbol=AAPL&statement_type=balance&provider=intrinio"
+```
+
+</CodeGroup>
+
+---
+
+## Key metrics and ratios
+
+### `obb.equity.fundamental.metrics`
+
+Get fundamental key metrics for a given company, such as PE ratio, EV/EBITDA, and return on equity.
+
+**REST path:** `GET /api/v1/equity/fundamental/metrics`
+
+**Providers:** `fmp`, `intrinio`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.metrics(
+    symbol="AAPL",
+    period="annual",
+    limit=100,
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/metrics?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.ratios`
+
+Get an extensive set of financial and accounting ratios for a given company over time.
+
+**REST path:** `GET /api/v1/equity/fundamental/ratios`
+
+**Providers:** `fmp`, `intrinio`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of periods to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.ratios(
+    symbol="AAPL",
+    period="annual",
+    limit=12,
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/ratios?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+## Revenue breakdown
+
+### `obb.equity.fundamental.revenue_per_geography`
+
+Get the geographic breakdown of revenue for a given company over time.
+
+**REST path:** `GET /api/v1/equity/fundamental/revenue_per_geography`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.revenue_per_geography(
+    symbol="AAPL",
+    period="quarter",
+    provider="fmp",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/revenue_per_geography?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.revenue_per_segment`
+
+Get the revenue breakdown by business segment for a given company over time.
+
+**REST path:** `GET /api/v1/equity/fundamental/revenue_per_segment`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="period" type="string" default="annual">
+  Reporting period. Options: `annual`, `quarter`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.revenue_per_segment(
+    symbol="AAPL",
+    period="quarter",
+    provider="fmp",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/revenue_per_segment?symbol=AAPL&period=quarter&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+## Dividends and earnings
+
+### `obb.equity.fundamental.dividends`
+
+Get historical dividend data for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/dividends`
+
+**Providers:** `fmp`, `intrinio`, `nasdaq`, `tmx`, `yfinance`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.dividends(symbol="AAPL", provider="intrinio")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/dividends?symbol=AAPL&provider=intrinio"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.trailing_dividend_yield`
+
+Get the 1-year trailing dividend yield for a given company over time.
+
+**REST path:** `GET /api/v1/equity/fundamental/trailing_dividend_yield`
+
+**Providers:** `tiingo`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of records to return. Defaults to provider maximum.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.trailing_dividend_yield(
+    symbol="AAPL",
+    limit=252,
+    provider="tiingo",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/trailing_dividend_yield?symbol=AAPL&limit=252&provider=tiingo"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.historical_eps`
+
+Get historical earnings per share data for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/historical_eps`
+
+**Providers:** `fmp`, `intrinio`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.historical_eps(symbol="AAPL", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/historical_eps?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+## Management and corporate data
+
+### `obb.equity.fundamental.management`
+
+Get executive management team data for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/management`
+
+**Providers:** `fmp`, `yfinance`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.management(symbol="AAPL", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/management?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.management_compensation`
+
+Get executive management team compensation for a given company over time.
+
+**REST path:** `GET /api/v1/equity/fundamental/management_compensation`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.management_compensation(symbol="AAPL", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/management_compensation?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.management_discussion_analysis`
+
+Get the Management Discussion & Analysis (MD&A) section from a company's financial filings.
+
+**REST path:** `GET /api/v1/equity/fundamental/management_discussion_analysis`
+
+**Providers:** `sec`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="calendar_year" type="number">
+  Calendar year of the filing period (e.g. `2020`).
+</ParamField>
+
+<ParamField query="calendar_period" type="string">
+  Calendar period of the filing. Options: `Q1`, `Q2`, `Q3`, `Q4`, `annual`.
+</ParamField>
+
+<ParamField query="include_tables" type="boolean" default="false">
+  Attempt to extract all tables in the MD&A as valid Markdown.
+</ParamField>
+
+<ParamField query="raw_html" type="boolean" default="false">
+  Return the raw HTML file instead of extracting content. Useful for custom parsing.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+# Most recent MD&A
+result = obb.equity.fundamental.management_discussion_analysis(
+    symbol="AAPL",
+    provider="sec",
+)
+
+# Specific period with tables
+result = obb.equity.fundamental.management_discussion_analysis(
+    symbol="AAPL",
+    calendar_year=2020,
+    calendar_period="Q4",
+    include_tables=True,
+    provider="sec",
+)
+
+print(result.results[0].content)
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/management_discussion_analysis?symbol=AAPL&provider=sec"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.employee_count`
+
+Get historical employee count data for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/employee_count`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.employee_count(symbol="AAPL", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/employee_count?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+## Filings and corporate actions
+
+### `obb.equity.fundamental.filings`
+
+Get public company filings (10-K, 10-Q, 8-K, etc.).
+
+**REST path:** `GET /api/v1/equity/fundamental/filings`
+
+**Providers:** `fmp`, `sec`, `tmx`
+
+<ParamField query="symbol" type="string">
+  Stock ticker symbol. Optional for some providers.
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Number of filings to return.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.filings(provider="fmp")
+df = result.to_df()
+
+# Last 100 filings
+result = obb.equity.fundamental.filings(limit=100, provider="fmp")
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/filings?limit=100&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.historical_splits`
+
+Get historical stock split data for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/historical_splits`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.historical_splits(symbol="AAPL", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/historical_splits?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.transcript`
+
+Get earnings call transcripts for a given company.
+
+**REST path:** `GET /api/v1/equity/fundamental/transcript`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="year" type="number" required>
+  Year of the earnings call (e.g. `2020`).
+</ParamField>
+
+<ParamField query="quarter" type="number" required>
+  Quarter of the earnings call. Options: `1`, `2`, `3`, `4`.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.transcript(
+    symbol="AAPL",
+    year=2020,
+    quarter=1,
+    provider="fmp",
+)
+print(result.results[0].content)
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/transcript?symbol=AAPL&year=2020&quarter=1&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+## ESG and data attributes
+
+### `obb.equity.fundamental.esg_score`
+
+Get ESG (Environmental, Social, and Governance) scores from company disclosures.
+
+**REST path:** `GET /api/v1/equity/fundamental/esg_score`
+
+**Providers:** `fmp`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol. Accepts comma-separated values for multiple symbols.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.esg_score(symbol="AAPL", provider="fmp")
+
+# Multiple symbols
+result = obb.equity.fundamental.esg_score(symbol="TSLA,F", provider="fmp")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/esg_score?symbol=AAPL&provider=fmp"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.search_attributes`
+
+Search Intrinio data tags used in `latest_attributes` and `historical_attributes`.
+
+**REST path:** `GET /api/v1/equity/fundamental/search_attributes`
+
+**Providers:** `intrinio`
+
+<ParamField query="query" type="string" required>
+  Search term (e.g. `ebitda`, `revenue`).
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.search_attributes(query="ebitda", provider="intrinio")
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/search_attributes?query=ebitda&provider=intrinio"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.latest_attributes`
+
+Get the latest value of a named data tag for a given company from Intrinio.
+
+**REST path:** `GET /api/v1/equity/fundamental/latest_attributes`
+
+**Providers:** `intrinio`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="tag" type="string" required>
+  Intrinio data tag (e.g. `ceo`, `ebitda`). Use `search_attributes` to find valid tags.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.latest_attributes(
+    symbol="AAPL",
+    tag="ceo",
+    provider="intrinio",
+)
+print(result.results[0].value)
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/latest_attributes?symbol=AAPL&tag=ceo&provider=intrinio"
+```
+
+</CodeGroup>
+
+---
+
+### `obb.equity.fundamental.historical_attributes`
+
+Get the historical values of a named data tag for a given company from Intrinio.
+
+**REST path:** `GET /api/v1/equity/fundamental/historical_attributes`
+
+**Providers:** `intrinio`
+
+<ParamField query="symbol" type="string" required>
+  Stock ticker symbol.
+</ParamField>
+
+<ParamField query="tag" type="string" required>
+  Intrinio data tag (e.g. `ebitda`). Use `search_attributes` to find valid tags.
+</ParamField>
+
+<ParamField query="provider" type="string">
+  Data provider to use.
+</ParamField>
+
+<CodeGroup>
+
+```python Python
+from openbb import obb
+
+result = obb.equity.fundamental.historical_attributes(
+    symbol="AAPL",
+    tag="ebitda",
+    provider="intrinio",
+)
+df = result.to_df()
+```
+
+```bash REST API
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/historical_attributes?symbol=AAPL&tag=ebitda&provider=intrinio"
+```
+
+</CodeGroup>

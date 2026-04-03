@@ -1,0 +1,258 @@
+---
+title: "Python SDK"
+description: "Access financial data directly in Python using the OpenBB SDK. Fetch, transform, and analyze data from dozens of providers with a single unified interface."
+keywords: ["python sdk", "openbb", "obb", "obbject", "dataframe", "provider", "financial data"]
+---
+
+The Python SDK is the primary way to use OpenBB. Every command returns an `OBBject` — a standardized container that gives you consistent access to results regardless of the underlying data provider.
+
+## Installation
+
+```bash
+pip install openbb
+```
+
+To install with all available extensions and providers:
+
+```bash
+pip install "openbb[all]"
+```
+
+## Basic usage
+
+Import the `obb` object and call commands using dot notation:
+
+```python
+from openbb import obb
+
+# Fetch historical price data for Apple
+result = obb.equity.price.historical("AAPL", provider="fmp")
+
+# Convert to a pandas DataFrame
+df = result.to_dataframe()
+print(df.head())
+```
+
+Every command accepts a `provider` parameter. If you omit it, OpenBB uses your configured default provider.
+
+## The OBBject return type
+
+Every SDK command returns an `OBBject`. It is a Pydantic model with the following fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `results` | `T \| None` | Serializable results data. |
+| `provider` | `str \| None` | The provider that returned the data. |
+| `warnings` | `list[Warning_] \| None` | Any warnings raised during the request. |
+| `chart` | `Chart \| None` | A chart object, populated when charting is enabled. |
+| `extra` | `dict[str, Any]` | Extra metadata, such as `results_metadata` from annotated results. |
+
+```python
+from openbb import obb
+
+result = obb.equity.price.historical("AAPL", provider="fmp")
+
+print(result.provider)   # "fmp"
+print(result.warnings)   # None or list of warnings
+print(result.extra)      # {"results_metadata": {...}}
+```
+
+### Converting results
+
+<CodeGroup>
+
+```python to_dataframe()
+# Returns a pandas DataFrame, indexed by "date" by default
+df = result.to_dataframe()
+
+# Use a different index column, or no index
+df = result.to_dataframe(index=None)
+
+# Sort results
+df = result.to_dataframe(sort_by="volume", ascending=False)
+```
+
+```python to_dict()
+# Returns a dict of lists by default
+data = result.to_dict()
+
+# Use any pandas orient option
+records = result.to_dict(orient="records")
+```
+
+```python to_polars()
+# Returns a Polars DataFrame (requires polars and pyarrow)
+polars_df = result.to_polars()
+```
+
+```python to_numpy()
+# Returns a numpy ndarray
+arr = result.to_numpy()
+```
+
+```python to_llm()
+# Returns JSON-encoded records suitable for LLM input
+json_str = result.to_llm()
+```
+
+</CodeGroup>
+
+### Displaying charts
+
+When charting extensions are installed, the `chart` field is populated after calling `.to_chart()`:
+
+```python
+result.to_chart()
+result.show()
+```
+
+## Provider selection
+
+Every command accepts a `provider` keyword argument. Switching providers changes the data source while keeping the same interface:
+
+```python
+from openbb import obb
+
+# Financial Modeling Prep
+obb.equity.price.historical("AAPL", provider="fmp")
+
+# Intrinio — supports 1-day interval
+obb.equity.price.historical("AAPL", interval="1d", provider="intrinio")
+```
+
+<Tip>
+Each provider may expose additional parameters beyond the standard ones. These appear as `extra_params` and are documented per-provider in the API reference.
+</Tip>
+
+Credentials for each provider are set in `~/.openbb_platform/user_settings.json`:
+
+```json
+{
+  "credentials": {
+    "fmp_api_key": "YOUR_FMP_KEY",
+    "intrinio_api_key": "YOUR_INTRINIO_KEY"
+  }
+}
+```
+
+## Examples by asset class
+
+<CardGroup cols={2}>
+
+<Card title="Equity" icon="chart-line" href="/reference/equity/price">
+Stocks, fundamentals, estimates, and ownership data.
+</Card>
+
+<Card title="Economy" icon="globe" href="/reference/economy">
+Macroeconomic indicators, GDP, employment, and FRED data.
+</Card>
+
+<Card title="Fixed income" icon="landmark" href="/reference/fixedincome">
+Bond yields, government securities, and interest rates.
+</Card>
+
+<Card title="Crypto" icon="bitcoin-sign" href="/reference/crypto">
+Cryptocurrency prices, market data, and analytics.
+</Card>
+
+</CardGroup>
+
+### Equity
+
+```python
+from openbb import obb
+
+# Historical price data
+obb.equity.price.historical("AAPL", provider="fmp")
+
+# Latest quote
+obb.equity.price.quote("AAPL", provider="fmp")
+
+# Balance sheet
+obb.equity.fundamental.balance("AAPL", provider="intrinio")
+
+# Company profile
+obb.equity.profile("AAPL", provider="fmp")
+
+# Screen for stocks
+obb.equity.screener(provider="fmp")
+
+# Search by name or symbol
+obb.equity.search("Apple", provider="intrinio")
+```
+
+### Economy
+
+```python
+from openbb import obb
+
+# Economic indicators from FRED
+obb.economy.indicators(provider="fred")
+
+# Nominal GDP by country
+obb.economy.gdp.nominal(provider="oecd")
+
+# Real GDP
+obb.economy.gdp.real(provider="oecd")
+```
+
+### Fixed income
+
+```python
+from openbb import obb
+
+obb.fixedincome.government.treasury_rates(provider="federal_reserve")
+```
+
+### Crypto
+
+```python
+from openbb import obb
+
+obb.crypto.price.historical("BTCUSD", provider="fmp")
+```
+
+## Async usage
+
+All SDK commands are `async` functions under the hood. You can `await` them directly in async contexts:
+
+```python
+import asyncio
+from openbb import obb
+
+async def fetch_data():
+    result = await obb.equity.price.historical("AAPL", provider="fmp")
+    return result.to_dataframe()
+
+df = asyncio.run(fetch_data())
+```
+
+<Note>
+In a Jupyter notebook, you can `await` commands directly without `asyncio.run()` because Jupyter runs its own event loop.
+</Note>
+
+## Filtering with provider extras
+
+Providers often expose additional parameters not in the standard interface. Pass them as keyword arguments:
+
+```python
+from openbb import obb
+
+# Use provider-specific parameters
+result = obb.equity.price.historical(
+    "AAPL",
+    provider="intrinio",
+    interval="1d",        # intrinio-specific interval format
+    start_date="2023-01-01",
+    end_date="2023-12-31",
+)
+
+df = result.to_dataframe()
+```
+
+Check `result.extra` for provider-level metadata returned alongside results:
+
+```python
+print(result.extra)
+# {"results_metadata": {"next_page": None, "messages": []}}
+```

@@ -1,28 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "OpenBB",
+  "projectType": "sdk-library",
+  "projectName": "OpenBB",
+  "projectDescription": "An open-source Python SDK and data platform that standardizes financial data from 30+ providers and exposes it via Python, REST API, CLI, and MCP server for analysts, quants, and AI agents.",
   "theme": "luma",
-  "colors": {
-    "primary": "#040404",
-    "light": "#747474",
-    "dark": "#d0d0d0"
-  },
-  "favicon": "https://media.brand.dev/86a874bb-c821-4ab2-a4a6-761b10064412.jpg",
-  "logo": {
-    "light": "https://media.brand.dev/65aad01a-10cb-413b-b757-710ec7ec91d9.svg",
-    "dark": "https://media.brand.dev/65aad01a-10cb-413b-b757-710ec7ec91d9.svg"
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/OpenBB-finance/OpenBB"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/OpenBB-finance/OpenBB"
-    }
-  },
+  "primaryColor": "#040404",
+  "lightColor": "#747474",
+  "darkColor": "#d0d0d0",
   "navigation": {
     "tabs": [
       {
@@ -107,5 +90,36 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Unified Python SDK with 30+ data providers (yfinance, FMP, Intrinio, FRED, etc.)",
+    "Standardized data models across providers with OBBject return type",
+    "FastAPI REST server (openbb-api) for workspace and app integrations",
+    "MCP server (openbb-mcp) for AI agent tool access",
+    "Interactive CLI for command-line financial data exploration",
+    "Extensions for equity, crypto, derivatives, fixed income, economy, ETF, and more",
+    "Built-in charting, quantitative analysis, and technical indicators",
+    "OpenBB Workspace integration for enterprise dashboards and AI copilots"
+  ],
+  "publicApiSurface": [
+    "obb.equity.price.historical(symbol, provider)",
+    "obb.equity.price.quote(symbol, provider)",
+    "obb.equity.fundamental.balance(symbol, provider)",
+    "obb.equity.fundamental.income(symbol, provider)",
+    "obb.equity.fundamental.cash(symbol, provider)",
+    "obb.equity.fundamental.ratios(symbol, provider)",
+    "obb.equity.estimates.price_target(symbol, provider)",
+    "obb.economy.indicators(symbol, provider)",
+    "obb.fixedincome.rate.sofr(provider)",
+    "obb.crypto.price.historical(symbol, provider)",
+    "obb.derivatives.options.chains(symbol, provider)",
+    "obb.etf.search(query, provider)",
+    "obb.news.company(symbol, provider)",
+    "obb.technical.ema(data, length)",
+    "OBBject.to_dataframe()",
+    "OBBject.to_dict()",
+    "Fetcher.transform_query(params)",
+    "Fetcher.extract_data(query, credentials)",
+    "Fetcher.transform_data(query, data)"
+  ]
 }

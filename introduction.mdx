@@ -1,0 +1,119 @@
+---
+title: "Introduction"
+description: "OpenBB is an open-source financial data platform that standardizes 30+ data providers and exposes them through Python, REST API, CLI, and MCP server interfaces."
+keywords: ["openbb", "financial data", "python sdk", "open source", "quant research", "ai agents"]
+---
+
+OpenBB is an open-source Python SDK and financial data platform built around a single principle: **connect once, consume everywhere**. Integrate a data source one time and access it from Python, a REST API, the command line, or an AI agent — without rewriting your integration logic for each surface.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get from zero to your first query in under 5 minutes.
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Full installation guide covering pip, extras, CLI, and dev setup.
+  </Card>
+  <Card title="Python SDK" icon="python" href="/data-access/python-sdk">
+    Query any dataset from Python using the `obb` object.
+  </Card>
+  <Card title="REST API" icon="server" href="/data-access/rest-api">
+    Start a FastAPI server with `openbb-api` and query data over HTTP.
+  </Card>
+  <Card title="CLI" icon="terminal" href="/data-access/cli">
+    Explore financial data interactively from the command line.
+  </Card>
+  <Card title="MCP Server" icon="robot" href="/data-access/mcp-server">
+    Connect AI agents to OpenBB data via the Model Context Protocol.
+  </Card>
+</CardGroup>
+
+## What is OpenBB?
+
+OpenBB is the open-source infrastructure layer for financial data. It consolidates data from dozens of providers — free and commercial — under a standardized interface, so downstream applications work the same regardless of which provider supplies the data.
+
+The platform exposes data to multiple surfaces simultaneously:
+
+- **Python** — for quants and data scientists via the `obb` object
+- **REST API** — for applications and dashboards via `openbb-api` (FastAPI + Uvicorn)
+- **CLI** — for interactive terminal exploration via `openbb-cli`
+- **MCP server** — for AI agents via the Model Context Protocol
+- **OpenBB Workspace** — for enterprise dashboards and AI copilots at [pro.openbb.co](https://pro.openbb.co)
+
+## Architecture
+
+The platform is composed of three layers:
+
+**Core** (`openbb-core`) handles the shared infrastructure: the standardization framework, the `OBBject` return type, credential management, the REST API server, and the extension registry.
+
+**Extensions** are the router layer that defines what asset classes and data categories are available (equity, economy, crypto, etc.). Extensions translate user requests into provider calls and normalize the results into standard models.
+
+**Providers** are the data adapters that connect to individual data sources (yfinance, FMP, FRED, SEC, etc.). Each provider implements the fetchers defined by extensions, mapping raw API responses to standardized output models.
+
+```
+obb.equity.price.historical("AAPL", provider="fmp")
+        │           │                    │
+     Extension   Router              Provider adapter
+   (openbb-equity) defines          (openbb-fmp) fetches
+     the endpoint    the standard    and normalizes
+                     output model    the raw response
+```
+
+This separation means you can switch providers by changing one argument, and your downstream code — DataFrames, charts, models — stays the same.
+
+## Available asset classes
+
+The following extensions ship with a standard `pip install openbb`:
+
+| Extension | Asset class |
+|-----------|-------------|
+| `openbb-equity` | Stocks, ETFs, fundamental data, ownership, estimates |
+| `openbb-crypto` | Cryptocurrency prices and market data |
+| `openbb-derivatives` | Options chains, futures, and options Greeks |
+| `openbb-fixedincome` | Government bonds, corporate bonds, yield curves |
+| `openbb-economy` | Macroeconomic indicators, GDP, CPI, unemployment |
+| `openbb-etf` | ETF listings, holdings, and sector data |
+| `openbb-index` | Market indices and constituents |
+| `openbb-news` | Financial news from multiple sources |
+| `openbb-commodity` | Commodity prices and production data |
+| `openbb-currency` | FX rates and currency pairs |
+| `openbb-regulators` | SEC filings, regulatory data |
+
+## Included providers
+
+Over 30 data providers are integrated. The following are included by default:
+
+| Provider | Coverage |
+|----------|----------|
+| `yfinance` | Equity prices, fundamentals, crypto — free, no key required |
+| `fmp` | Financial Modeling Prep — fundamentals, prices, estimates |
+| `intrinio` | Institutional-grade equity and options data |
+| `fred` | Federal Reserve Economic Data — macro indicators |
+| `sec` | SEC EDGAR filings and company data |
+| `oecd` | OECD macroeconomic and statistical data |
+| `benzinga` | Financial news and sentiment |
+| `tiingo` | EOD prices and news |
+| `tradingeconomics` | Global economic indicators |
+| `federal-reserve` | Fed rates, balance sheet, monetary data |
+| `bls` | Bureau of Labor Statistics |
+| `imf` | International Monetary Fund data |
+| `econdb` | Economic database aggregator |
+| `cftc` | CFTC commitment of traders reports |
+| `us-eia` | U.S. Energy Information Administration |
+| `government-us` | U.S. government data sources |
+
+Additional community providers — including `ecb`, `cboe`, `alpha-vantage`, `nasdaq`, `finra`, `deribit`, `finviz`, `tmx`, `tradier`, and more — are available via `pip install "openbb[all]"`.
+
+<Note>
+Most data is accessible for free via `yfinance` with no API key required. Commercial providers like FMP, Intrinio, and Tiingo require API keys, which you configure in `~/.openbb_platform/user_settings.json`.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Fetch your first dataset in under 5 minutes.
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Install OpenBB, configure extras, and set up your environment.
+  </Card>
+</CardGroup>

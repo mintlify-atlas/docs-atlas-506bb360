@@ -1,0 +1,307 @@
+---
+title: "MCP Server"
+description: "Connect LLM agents to OpenBB financial data using the Model Context Protocol. Works with Claude Desktop, Cursor, VS Code, and any MCP-compatible client."
+keywords: ["mcp", "mcp server", "openbb mcp", "llm", "claude", "cursor", "ai agent", "model context protocol"]
+---
+
+The OpenBB MCP Server exposes OpenBB Platform endpoints as tools that LLM agents can call via the [Model Context Protocol](https://modelcontextprotocol.io). Agents can discover, activate, and deactivate tools per-session — keeping the initial tool list small to avoid token bloat while still providing access to the full platform on demand.
+
+## Installation
+
+```bash
+pip install openbb-mcp-server
+```
+
+## Starting the server
+
+```bash
+openbb-mcp
+```
+
+The server starts on `http://127.0.0.1:8001` using the `streamable-http` transport by default.
+
+Alternatively, run without installing using `uvx`:
+
+```bash
+uvx --from openbb-mcp-server --with openbb openbb-mcp
+```
+
+### Common startup options
+
+```bash
+# Start with specific default categories
+openbb-mcp --default-categories equity,news
+
+# Restrict available categories
+openbb-mcp --allowed-categories equity,crypto,news
+
+# Enable per-session tool discovery
+openbb-mcp --tool-discovery
+
+# Use SSE transport (required for Cline extension)
+openbb-mcp --transport sse
+
+# Custom host and port
+openbb-mcp --host 0.0.0.0 --port 8080
+```
+
+Run `openbb-mcp --help` to see all available options.
+
+## Client configuration
+
+### Claude Desktop
+
+Add the following to your Claude Desktop `mcpServers` configuration. Claude Desktop launches the server automatically using `stdio`:
+
+```json
+{
+  "mcpServers": {
+    "openbb-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "openbb-mcp-server",
+        "--with",
+        "openbb",
+        "openbb-mcp",
+        "--transport",
+        "stdio"
+      ]
+    }
+  }
+}
+```
+
+Ensure `uvx` is installed and available in your system PATH, then restart Claude Desktop.
+
+### Cursor
+
+<Steps>
+
+<Step title="Start the MCP server">
+
+```bash
+openbb-mcp
+```
+
+The server starts on `http://127.0.0.1:8001`.
+
+</Step>
+
+<Step title="Configure Cursor">
+
+Add the following to the `mcpServers` object in your `mcp.json` file:
+
+```json
+{
+  "mcpServers": {
+    "openbb-mcp": {
+      "url": "http://localhost:8001/mcp/"
+    }
+  }
+}
+```
+
+</Step>
+
+</Steps>
+
+### VS Code
+
+<Steps>
+
+<Step title="Enable MCP in VS Code settings">
+
+Press `Shift + Command + P` and open **Preferences: Open User Settings**. Search for `mcp` and enable MCP server integrations under **Chat**.
+
+</Step>
+
+<Step title="Start the MCP server">
+
+```bash
+openbb-mcp
+```
+
+The server starts on `http://127.0.0.1:8001`.
+
+</Step>
+
+<Step title="Add the server">
+
+Press `Shift + Command + P` and select **MCP: Add Server**. Choose **HTTP** as the type, then paste the URL from the server console:
+
+```
+http://127.0.0.1:8001/mcp
+```
+
+Give the server a name and save it globally or to your workspace. VS Code creates an `mcp.json` configuration file automatically.
+
+</Step>
+
+</Steps>
+
+<Note>
+When using the Cline VS Code extension, start the server with `--transport sse` instead of the default `streamable-http`.
+</Note>
+
+## Tool categories
+
+The server organizes tools by the first path segment of each API route. Available categories depend on installed extensions:
+
+| Category | Description |
+|---|---|
+| `equity` | Stock data, fundamentals, price history, estimates. |
+| `crypto` | Cryptocurrency data and analysis. |
+| `economy` | Economic indicators, GDP, employment data. |
+| `news` | Financial news from various sources. |
+| `fixedincome` | Bond data, rates, government securities. |
+| `derivatives` | Options and futures data. |
+| `etf` | ETF information and holdings. |
+| `currency` | Foreign exchange data. |
+| `commodity` | Commodity prices and data. |
+| `index` | Market indices data. |
+| `regulators` | SEC, CFTC regulatory data. |
+
+Each category contains subcategories that group related functionality — for example, `equity` contains `equity_price`, `equity_fundamental`, `equity_estimates`, and others.
+
+## Tool discovery
+
+When `--tool-discovery` is enabled, the server registers a set of admin tools that let agents progressively discover and activate only what they need:
+
+<Steps>
+
+<Step title="Browse">
+`available_categories` returns the full category tree with tool counts.
+</Step>
+
+<Step title="Inspect">
+`available_tools` lists every tool in a category with its active/inactive state and a short description.
+</Step>
+
+<Step title="Activate">
+`activate_tools` or `activate_category` enables specific tools or an entire category for the current session.
+</Step>
+
+<Step title="Deactivate">
+`deactivate_tools` removes tools when they are no longer needed.
+</Step>
+
+</Steps>
+
+All visibility changes are **per-session** — each connected client maintains its own active toolset. Multiple agents can connect simultaneously with different tool configurations without interfering with each other.
+
+To start with only discovery tools active:
+
+```bash
+openbb-mcp --tool-discovery --default-categories admin
+```
+
+## Configuration
+
+Settings are applied in order of precedence: **command-line arguments** > **environment variables** > **config file**.
+
+The config file lives at `~/.openbb_platform/mcp_settings.json`. If it does not exist, it is created with defaults on first run.
+
+### Key settings
+
+| Setting | Environment variable | Default | Description |
+|---|---|---|---|
+| `default_tool_categories` | `OPENBB_MCP_DEFAULT_TOOL_CATEGORIES` | `["all"]` | Tool categories active on startup. |
+| `allowed_tool_categories` | `OPENBB_MCP_ALLOWED_TOOL_CATEGORIES` | `None` | Restricts which categories can be activated. |
+| `enable_tool_discovery` | `OPENBB_MCP_ENABLE_TOOL_DISCOVERY` | `false` | Enable per-session discovery admin tools. |
+| `uvicorn_config` | `OPENBB_MCP_UVICORN_CONFIG` | `{"host": "127.0.0.1", "port": "8001"}` | Uvicorn server configuration. |
+| `cache_expiration_seconds` | `OPENBB_MCP_CACHE_EXPIRATION_SECONDS` | `None` | Cache lifetime in seconds. `0` disables caching. |
+| `server_auth` | `OPENBB_MCP_SERVER_AUTH` | `None` | `[username, password]` for server-side authentication. |
+| `client_auth` | `OPENBB_MCP_CLIENT_AUTH` | `None` | `[username, password]` for downstream request authentication. |
+| `system_prompt_file` | `OPENBB_MCP_SYSTEM_PROMPT_FILE` | `None` | Path to a `.txt` file used as the system prompt. |
+| `describe_responses` | `OPENBB_MCP_DESCRIBE_RESPONSES` | `false` | Include response type information in tool descriptions. |
+
+<Accordion title="Full settings reference">
+
+| Setting | Environment variable | Type | Default | Description |
+|---|---|---|---|---|
+| `api_prefix` | `OPENBB_MCP_API_PREFIX` | string | `None` | Overrides the API prefix from SystemService. |
+| `name` | `OPENBB_MCP_NAME` | string | `"OpenBB MCP"` | Server name. |
+| `description` | `OPENBB_MCP_DESCRIPTION` | string | — | Server description. |
+| `version` | `OPENBB_MCP_VERSION` | string | `None` | Server version. |
+| `instructions` | `OPENBB_MCP_INSTRUCTIONS` | string | `None` | Instructions sent during the MCP `initialize` handshake. |
+| `list_page_size` | `OPENBB_MCP_LIST_PAGE_SIZE` | integer | `None` | Max items per page in MCP list responses. |
+| `server_prompts_file` | `OPENBB_MCP_SERVER_PROMPTS_FILE` | string | `None` | Path to a JSON file with server prompt definitions. |
+| `default_skills_dir` | `OPENBB_MCP_DEFAULT_SKILLS_DIR` | string | *(bundled)* | Path to bundled skill files. Set to `null` to disable. |
+| `skills_reload` | `OPENBB_MCP_SKILLS_RELOAD` | boolean | `false` | Reload skill files on every read (useful during development). |
+| `skills_providers` | `OPENBB_MCP_SKILLS_PROVIDERS` | list[string] | `None` | Vendor skill providers to load (e.g. `["claude", "cursor"]`). |
+| `on_duplicate_tools` | `OPENBB_MCP_ON_DUPLICATE_TOOLS` | string | `None` | Behavior for duplicate tools: `warn`, `error`, `replace`, or `ignore`. |
+| `mask_error_details` | `OPENBB_MCP_MASK_ERROR_DETAILS` | boolean | `None` | Mask error details from user-facing responses. |
+| `httpx_client_kwargs` | `OPENBB_MCP_HTTPX_CLIENT_KWARGS` | dict | `{}` | Configuration for the async httpx client. |
+
+</Accordion>
+
+### Example mcp_settings.json
+
+```json
+{
+  "default_tool_categories": ["equity", "news"],
+  "enable_tool_discovery": true,
+  "uvicorn_config": {
+    "host": "127.0.0.1",
+    "port": 8001
+  }
+}
+```
+
+## Authentication
+
+### Server-side authentication
+
+Require clients to authenticate before accessing any tools:
+
+<CodeGroup>
+
+```json mcp_settings.json
+{
+  "server_auth": ["myuser", "mypass"]
+}
+```
+
+```bash Environment variable
+OPENBB_MCP_SERVER_AUTH='["myuser", "mypass"]'
+```
+
+</CodeGroup>
+
+When server auth is enabled, clients must include an `Authorization: Bearer <base64(username:password)>` header.
+
+### Client-side authentication
+
+Configure the server to authenticate with downstream services:
+
+```json
+{
+  "client_auth": ["client_user", "client_pass"]
+}
+```
+
+<Note>
+Provider API keys are set separately in `~/.openbb_platform/user_settings.json` under `credentials`, not in the MCP settings.
+</Note>
+
+## Bundled skills
+
+The server ships with skill guides — Markdown documents that teach an agent how to perform complex multi-step tasks. Skills are exposed as MCP resources discoverable via `list_resources()`.
+
+| Skill | URI | Description |
+|---|---|---|
+| `develop_extension` | `skill://develop_extension/SKILL.md` | Build an OpenBB Platform extension. |
+| `build_workspace_app` | `skill://build_workspace_app/SKILL.md` | Build OpenBB Workspace applications. |
+| `configure_mcp_server` | `skill://configure_mcp_server/SKILL.md` | Configure and customize the MCP server. |
+| `work_with_server` | `skill://work_with_server/SKILL.md` | Practical guide for working with the server as an agent. |
+
+To load vendor-specific skill providers:
+
+```json
+{
+  "skills_providers": ["claude", "cursor"]
+}
+```
+
+Supported providers: `claude`, `cursor`, `vscode`, `copilot`, `codex`, `gemini`, `goose`, `opencode`.

@@ -1,0 +1,99 @@
+---
+title: "OpenBB Workspace"
+description: "Connect the Open Data Platform backend to OpenBB Workspace, the enterprise UI for analysts at pro.openbb.co."
+keywords: ['openbb workspace', 'backend', 'connect', 'fastapi', 'widgets', 'apps']
+---
+
+OpenBB Workspace is the enterprise UI for analysts to visualize datasets and leverage AI agents. It is available at [pro.openbb.co](https://pro.openbb.co).
+
+The Open Data Platform (ODP) serves as the "connect once, consume everywhere" infrastructure layer. Once you run an ODP backend, OpenBB Workspace can consume it alongside Python environments, Excel, MCP servers, and REST APIs — all from a single data integration.
+
+## Connect an ODP backend to Workspace
+
+<Steps>
+  <Step title="Install the package">
+    Install OpenBB with all optional extensions in a Python 3.9–3.12 environment.
+
+    ```bash
+    pip install "openbb[all]"
+    ```
+  </Step>
+  <Step title="Start the API server">
+    Launch the FastAPI server over localhost.
+
+    ```bash
+    openbb-api
+    ```
+
+    This starts a Uvicorn server at `http://127.0.0.1:6900`. You can verify it is running by opening that address in your browser.
+
+    <Note>
+      Chrome is the recommended browser. Other browsers may conflict or require additional configuration.
+    </Note>
+  </Step>
+  <Step title="Connect the backend in Workspace">
+    Sign in to [OpenBB Workspace](https://pro.openbb.co), then:
+
+    1. Go to the **Apps** tab.
+    2. Click **Connect backend**.
+    3. Fill in the form:
+       - **Name**: `Open Data Platform`
+       - **URL**: `http://127.0.0.1:6900`
+    4. Click **Test**. A "Test successful" message appears with the number of apps found.
+    5. Click **Add**.
+
+    Your ODP backend is now connected to Workspace.
+  </Step>
+</Steps>
+
+## Backend endpoints
+
+When the ODP server is running, it exposes two key endpoints that Workspace uses to discover available widgets and app templates.
+
+| Endpoint | Description |
+| --- | --- |
+| `GET /widgets.json` | Returns the widget configuration for all available data endpoints. Workspace reads this on connection to populate the widget library. |
+| `GET /apps.json` | Returns saved app templates. Workspace uses this to offer pre-built dashboard layouts matching your installed extensions. |
+
+You can inspect these responses directly in your browser or with `curl`:
+
+```bash
+curl http://127.0.0.1:6900/widgets.json
+curl http://127.0.0.1:6900/apps.json
+```
+
+## Custom backend configuration
+
+The API server reads from `~/.openbb_platform/user_settings.json` for user-level configuration, including provider API keys and data directory preferences.
+
+You can also supply a widget exclusion filter via `~/.openbb_platform/widget_settings.json` to hide specific endpoints from the widget library:
+
+```json
+{
+  "exclude": [
+    "/api/v1/equity/technical/*",
+    "/api/v1/econometrics/*"
+  ]
+}
+```
+
+The server host and port can be overridden with environment variables:
+
+```bash
+OPENBB_API_HOST=0.0.0.0 OPENBB_API_PORT=8080 openbb-api
+```
+
+<Tip>
+  Data-processing extensions such as `econometrics`, `quantitative`, and `technical` are automatically excluded from the widget list since they are not suited for Workspace widgets. You do not need to configure this manually.
+</Tip>
+
+## Related resources
+
+<CardGroup cols={2}>
+  <Card title="backends-for-openbb" icon="github" href="https://github.com/OpenBB-finance/backends-for-openbb">
+    Open-source repository with example custom backends for OpenBB Workspace.
+  </Card>
+  <Card title="agents-for-openbb" icon="github" href="https://github.com/OpenBB-finance/agents-for-openbb">
+    Open-source repository for adding AI agents to OpenBB Workspace.
+  </Card>
+</CardGroup>

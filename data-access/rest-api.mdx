@@ -1,0 +1,201 @@
+---
+title: "REST API"
+description: "Run a local REST API server to access OpenBB data over HTTP. Integrates with OpenBB Workspace and any HTTP client."
+keywords: ["rest api", "openbb api", "http", "swagger", "openbb workspace", "widgets.json", "uvicorn"]
+---
+
+The OpenBB Platform ships with a FastAPI-based REST API server. Once running, every SDK command is available as an HTTP endpoint — enabling integration with OpenBB Workspace, custom frontends, and automated pipelines.
+
+## Installation
+
+```bash
+pip install "openbb[all]"
+```
+
+## Starting the server
+
+<Steps>
+
+<Step title="Launch with the openbb-api command">
+
+```bash
+openbb-api
+```
+
+The server starts on `http://127.0.0.1:6900` by default.
+
+</Step>
+
+<Step title="Alternatively, launch with uvicorn directly">
+
+```bash
+uvicorn openbb_core.api.rest_api:app --host 127.0.0.1 --port 6900
+```
+
+</Step>
+
+<Step title="Open the interactive docs">
+
+Navigate to `http://127.0.0.1:6900/docs` to explore all endpoints in the Swagger UI.
+
+</Step>
+
+</Steps>
+
+## Configuration
+
+The server reads configuration from environment variables. Set these before starting the server or add them to a `.env` file:
+
+| Variable | Default | Description |
+|---|---|---|
+| `OPENBB_API_HOST` | `127.0.0.1` | Host address to bind the server. |
+| `OPENBB_API_PORT` | `6900` | Port to bind the server. |
+
+```bash
+OPENBB_API_HOST=0.0.0.0 OPENBB_API_PORT=8080 openbb-api
+```
+
+<Warning>
+Setting `OPENBB_API_HOST=0.0.0.0` exposes the server on all network interfaces. Enable authentication before doing this in any shared or production environment.
+</Warning>
+
+Additional uvicorn settings can be configured in `~/.openbb_platform/user_settings.json` under `python_settings.uvicorn`:
+
+```json
+{
+  "python_settings": {
+    "uvicorn": {
+      "workers": 2,
+      "timeout_keep_alive": 30
+    }
+  }
+}
+```
+
+## Authentication
+
+The API uses JWT-based authentication. Set your credentials in `~/.openbb_platform/user_settings.json`:
+
+```json
+{
+  "credentials": {
+    "fmp_api_key": "YOUR_FMP_KEY",
+    "intrinio_api_key": "YOUR_INTRINIO_KEY"
+  }
+}
+```
+
+For server-to-server authentication, include an `Authorization` header with your bearer token:
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" http://127.0.0.1:6900/api/v1/equity/price/historical?symbol=AAPL&provider=fmp
+```
+
+## Making requests
+
+All endpoints follow the pattern `/api/v1/<router>/<command>`. Query parameters map directly to the SDK function parameters.
+
+### Equity price history
+
+<CodeGroup>
+
+```bash curl
+curl "http://127.0.0.1:6900/api/v1/equity/price/historical?symbol=AAPL&provider=fmp"
+```
+
+```python Python (requests)
+import requests
+
+response = requests.get(
+    "http://127.0.0.1:6900/api/v1/equity/price/historical",
+    params={"symbol": "AAPL", "provider": "fmp"},
+)
+data = response.json()
+print(data["results"])
+```
+
+```javascript JavaScript (fetch)
+const response = await fetch(
+  "http://127.0.0.1:6900/api/v1/equity/price/historical?symbol=AAPL&provider=fmp"
+);
+const data = await response.json();
+console.log(data.results);
+```
+
+</CodeGroup>
+
+### Equity quote
+
+```bash
+curl "http://127.0.0.1:6900/api/v1/equity/price/quote?symbol=AAPL&provider=fmp"
+```
+
+### Balance sheet
+
+```bash
+curl "http://127.0.0.1:6900/api/v1/equity/fundamental/balance?symbol=AAPL&provider=intrinio"
+```
+
+## Response format
+
+All endpoints return the same `OBBject` structure serialized as JSON:
+
+```json
+{
+  "results": [...],
+  "provider": "fmp",
+  "warnings": null,
+  "chart": null,
+  "extra": {}
+}
+```
+
+## OpenBB Workspace integration
+
+The API server exposes two special endpoints that OpenBB Workspace uses to discover available data widgets and dashboard templates.
+
+### widgets.json
+
+Returns the widget manifest describing every available endpoint as a configurable widget:
+
+```bash
+curl "http://127.0.0.1:6900/widgets.json"
+```
+
+Widgets are automatically generated from the OpenAPI schema on startup. You can customize widget visibility using `~/.openbb_platform/widget_settings.json`:
+
+```json
+{
+  "exclude": [
+    "/api/v1/technical/*",
+    "/api/v1/quantitative/*"
+  ]
+}
+```
+
+### apps.json
+
+Returns dashboard template definitions for OpenBB Workspace:
+
+```bash
+curl "http://127.0.0.1:6900/apps.json"
+```
+
+Custom dashboard templates can be added to `~/OpenBBUserData/workspace_apps.json`.
+
+<Tip>
+To connect OpenBB Workspace to your local server, enter the server URL (`http://127.0.0.1:6900`) in the Workspace custom backend settings.
+</Tip>
+
+## Interactive API docs
+
+The Swagger UI at `http://127.0.0.1:6900/docs` lets you explore and test every endpoint directly in the browser. Each endpoint shows:
+
+- Required and optional parameters
+- Provider choices
+- Example requests and responses
+- Response schema
+
+<Note>
+The server landing page at `http://127.0.0.1:6900` displays the URL to paste into OpenBB Workspace once the application starts.
+</Note>

@@ -1,97 +1,86 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "OpenBB — Financial Data Platform"
+description: "Open-source financial data platform for analysts, quants, and AI agents. Connect once, consume everywhere."
 ---
 
-## Setting up
+OpenBB is an open-source Python SDK and data platform that standardizes financial data from 30+ providers and exposes it through Python, REST API, CLI, and MCP server interfaces — so you can build research tools, AI copilots, and quantitative workflows on a single integration layer.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running with OpenBB in minutes. Install the package and fetch your first financial dataset.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Installation" icon="download" href="/installation">
+    Full installation guide covering pip, optional extensions, and environment setup.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Python SDK" icon="python" href="/data-access/python-sdk">
+    Use the `obb` object to query equity prices, fundamentals, economic data, and more from Python.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="API Reference" icon="code" href="/reference/equity/price">
+    Complete reference for all endpoints across equity, economy, fixed income, crypto, and derivatives.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What is OpenBB?
 
-Everything you need to create world-class documentation.
+OpenBB operates as the "connect once, consume everywhere" infrastructure layer for financial data. A single integration exposes your data to:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+- **Python environments** — for quants and data scientists via the `obb` object
+- **REST API** — for apps and dashboards via `openbb-api` (FastAPI + Uvicorn)
+- **CLI** — for interactive exploration via `openbb-cli`
+- **MCP server** — for AI agents via `openbb-mcp`
+- **OpenBB Workspace** — for enterprise dashboards and AI copilots
 
-## Need inspiration?
+## Get started in 3 steps
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Steps>
+  <Step title="Install the package">
+    ```bash
+    pip install openbb
+    ```
+  </Step>
+  <Step title="Import and query data">
+    ```python
+    from openbb import obb
+
+    # Get historical equity prices
+    result = obb.equity.price.historical("AAPL")
+    df = result.to_dataframe()
+    print(df.head())
+    ```
+  </Step>
+  <Step title="Explore more data">
+    ```python
+    # Economic indicators
+    gdp = obb.economy.indicators(symbol="GDP", provider="fred")
+
+    # Options chains
+    chains = obb.derivatives.options.chains("AAPL", provider="cboe")
+
+    # Crypto prices
+    btc = obb.crypto.price.historical("BTCUSD", provider="yfinance")
+    ```
+  </Step>
+</Steps>
+
+## Explore the platform
+
+<CardGroup cols={2}>
+  <Card title="Core Concepts" icon="lightbulb" href="/concepts/obbject">
+    Learn about the OBBject return type, providers, and standardization framework.
+  </Card>
+  <Card title="Data Providers" icon="database" href="/concepts/providers">
+    30+ integrated data providers including yfinance, FMP, Intrinio, FRED, SEC, and more.
+  </Card>
+  <Card title="REST API" icon="server" href="/data-access/rest-api">
+    Start the FastAPI server with `openbb-api` and integrate with any application.
+  </Card>
+  <Card title="MCP Server" icon="robot" href="/data-access/mcp-server">
+    Connect AI agents to OpenBB financial data via the Model Context Protocol.
+  </Card>
+  <Card title="CLI" icon="terminal" href="/data-access/cli">
+    Explore financial data interactively from the command line.
+  </Card>
+  <Card title="Build Extensions" icon="puzzle-piece" href="/extensions/overview">
+    Add new data providers or asset classes with the extension framework.
+  </Card>
+</CardGroup>

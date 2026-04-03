@@ -1,0 +1,360 @@
+---
+title: "Fixed Income"
+description: "Access fixed income market data including government bonds, treasury rates, yield curves, corporate bonds, money market rates, and credit spreads."
+keywords: ["fixed income", "bonds", "yield curve", "treasury", "SOFR", "SONIA", "federal funds rate", "corporate bonds", "FRED"]
+---
+
+The `obb.fixedincome` namespace covers the full spectrum of fixed income markets. Commands are organized into four sub-namespaces: `rate` for benchmark short-term rates, `government` for sovereign debt and yield curves, `corporate` for investment-grade bonds and commercial paper, and `spreads` for yield spread analytics.
+
+<CardGroup cols={2}>
+  <Card title="Rates" icon="percent" href="#rates">
+    SOFR, EFFR, SONIA, €STR, AMERIBOR, and other benchmarks
+  </Card>
+  <Card title="Government" icon="landmark" href="#government">
+    Treasury rates, yield curves, TIPS, and auctions
+  </Card>
+  <Card title="Corporate" icon="building" href="#corporate">
+    HQM bonds, commercial paper, spot rates, and bond prices
+  </Card>
+  <Card title="Spreads" icon="arrows-left-right" href="#spreads">
+    Constant maturity spreads and treasury bill spreads
+  </Card>
+</CardGroup>
+
+---
+
+## Rates
+
+### `obb.fixedincome.rate.sofr`
+
+Secured Overnight Financing Rate — a broad measure of the cost of borrowing cash overnight collateralized by Treasury securities.
+
+```python
+res = obb.fixedincome.rate.sofr(provider="fred")
+```
+
+### `obb.fixedincome.rate.effr`
+
+Effective Federal Funds Rate (EFFR) — the rate at which banks lend reserve balances to each other overnight.
+
+<CodeGroup>
+
+```python Current rate
+res = obb.fixedincome.rate.effr(provider="fred")
+```
+
+```python EFFR only (no OBFR)
+res = obb.fixedincome.rate.effr(effr_only=True, provider="fred")
+```
+
+</CodeGroup>
+
+### `obb.fixedincome.rate.effr_forecast`
+
+Fed Funds Rate projections from the FOMC — the midpoint of the projected appropriate target range at the end of each calendar year.
+
+```python
+res = obb.fixedincome.rate.effr_forecast(long_run=True, provider="fred")
+```
+
+### `obb.fixedincome.rate.sonia`
+
+Sterling Overnight Index Average — the average interest rate at which banks borrow sterling overnight from other financial institutions.
+
+```python
+res = obb.fixedincome.rate.sonia(
+    parameter="total_nominal_value",
+    provider="fred",
+)
+```
+
+### `obb.fixedincome.rate.estr`
+
+Euro Short-Term Rate (€STR) — the wholesale euro unsecured overnight borrowing costs of banks in the euro area.
+
+```python
+res = obb.fixedincome.rate.estr(transform="ch1", provider="fred")
+```
+
+### `obb.fixedincome.rate.ameribor`
+
+AMERIBOR — the American Interbank Offered Rate based on overnight unsecured loan transactions on the American Financial Exchange.
+
+```python
+res = obb.fixedincome.rate.ameribor(
+    maturity="all",
+    transform="pc1",
+    provider="fred",
+)
+```
+
+### `obb.fixedincome.rate.ecb`
+
+European Central Bank interest rates — MRO rate, deposit facility rate, and marginal lending facility rate.
+
+```python
+res = obb.fixedincome.rate.ecb(
+    interest_rate_type="refinancing",
+    provider="fred",
+)
+```
+
+### `obb.fixedincome.rate.iorb`
+
+Interest on Reserve Balances (IORB) — the rate paid by the Federal Reserve on bank reserve balances.
+
+```python
+res = obb.fixedincome.rate.iorb(provider="fred")
+```
+
+### `obb.fixedincome.rate.dpcredit`
+
+Discount Window Primary Credit Rate — the rate the Federal Reserve charges banks to borrow money directly.
+
+```python
+res = obb.fixedincome.rate.dpcredit(
+    start_date="2023-02-01",
+    end_date="2023-05-01",
+    provider="fred",
+)
+```
+
+### `obb.fixedincome.rate.overnight_bank_funding`
+
+Overnight Bank Funding Rate (OBFR) — a volume-weighted median of overnight federal funds and Eurodollar transactions.
+
+```python
+res = obb.fixedincome.rate.overnight_bank_funding(provider="fred")
+```
+
+---
+
+## Government
+
+### `obb.fixedincome.government.yield_curve`
+
+Yield curve data by country and date. Supports nominal, real, and par yield types across multiple providers.
+
+<CodeGroup>
+
+```python US yield curve — Federal Reserve
+res = obb.fixedincome.government.yield_curve(provider="federal_reserve")
+```
+
+```python Two historical dates — FMP
+res = obb.fixedincome.government.yield_curve(
+    date="2023-05-01,2024-05-01",
+    provider="fmp",
+)
+```
+
+```python UK yield curve — EconDB
+res = obb.fixedincome.government.yield_curve(
+    date="2023-05-01",
+    country="united_kingdom",
+    provider="econdb",
+)
+```
+
+```python ECB par yield
+res = obb.fixedincome.government.yield_curve(
+    provider="ecb",
+    yield_curve_type="par_yield",
+)
+```
+
+```python US real yield curve — FRED
+res = obb.fixedincome.government.yield_curve(
+    provider="fred",
+    yield_curve_type="real",
+    date="2023-05-01,2024-05-01",
+)
+```
+
+</CodeGroup>
+
+### `obb.fixedincome.government.treasury_rates`
+
+Current and historical US government treasury rates across maturities.
+
+```python
+res = obb.fixedincome.government.treasury_rates(provider="fmp")
+```
+
+### `obb.fixedincome.government.treasury_auctions`
+
+US Treasury auction results including bid-to-cover ratios, awarded amounts, and security types.
+
+```python
+res = obb.fixedincome.government.treasury_auctions(
+    security_type="Bill",
+    start_date="2022-01-01",
+    end_date="2023-01-01",
+    provider="government_us",
+)
+```
+
+### `obb.fixedincome.government.treasury_prices`
+
+US Treasury security prices for a given date, sourced from official government data.
+
+```python
+res = obb.fixedincome.government.treasury_prices(
+    date="2019-02-05",
+    provider="government_us",
+)
+```
+
+### `obb.fixedincome.government.tips_yields`
+
+Treasury Inflation-Protected Securities (TIPS) yields by maturity.
+
+```python
+res = obb.fixedincome.government.tips_yields(
+    maturity=10,
+    provider="fred",
+)
+```
+
+### `obb.fixedincome.government.svensson_yield_curve`
+
+Svensson Nominal Yield Curve — daily estimated yield curve parameters from the Federal Reserve since 1961. Includes zero-coupon yields, par yields, instantaneous forward rates, and model parameters.
+
+<CodeGroup>
+
+```python Latest parameters
+res = obb.fixedincome.government.svensson_yield_curve(provider="federal_reserve")
+```
+
+```python Zero-coupon yields — filtered date range
+res = obb.fixedincome.government.svensson_yield_curve(
+    series_type="zero_coupon",
+    start_date="2020-01-01",
+    end_date="2025-12-31",
+    provider="federal_reserve",
+)
+```
+
+</CodeGroup>
+
+<Note>
+Before 1980, the Federal Reserve used the Nelson-Siegel model (fewer parameters). The Svensson model applies from 1980 onward.
+</Note>
+
+---
+
+## Corporate
+
+### `obb.fixedincome.corporate.hqm`
+
+High Quality Market (HQM) Corporate Bond yield curve — market-weighted average yield for AAA, AA, and A rated bonds.
+
+```python
+res = obb.fixedincome.corporate.hqm(
+    yield_curve="par",
+    provider="fred",
+)
+```
+
+### `obb.fixedincome.corporate.spot_rates`
+
+Corporate bond spot rates by maturity — zero-coupon yields for discounting pension liabilities.
+
+```python
+res = obb.fixedincome.corporate.spot_rates(
+    maturity="10,20,30,50",
+    provider="fred",
+)
+```
+
+### `obb.fixedincome.corporate.commercial_paper`
+
+Commercial paper rates — short-term promissory notes issued by corporations with maturities up to 270 days.
+
+```python
+res = obb.fixedincome.corporate.commercial_paper(
+    category="all",
+    maturity="15d",
+    provider="fred",
+)
+```
+
+### `obb.fixedincome.corporate.bond_prices`
+
+Corporate bond prices from TMX (Canadian market).
+
+```python
+res = obb.fixedincome.corporate.bond_prices(provider="tmx")
+```
+
+---
+
+## Bond indices
+
+### `obb.fixedincome.bond_indices`
+
+Bond index data from FRED. Includes US investment grade, high yield, and emerging market indices with total return or spread options.
+
+<CodeGroup>
+
+```python US Corporate Bond Yield Curve series
+res = obb.fixedincome.bond_indices(provider="fred")
+```
+
+```python High yield — multiple regions
+res = obb.fixedincome.bond_indices(
+    category="high_yield",
+    index="us,europe,emerging",
+    index_type="total_return",
+    provider="fred",
+)
+```
+
+```python Emerging markets
+res = obb.fixedincome.bond_indices(
+    category="emerging_markets",
+    index="corporate,private_sector,public_sector",
+    provider="fred",
+)
+```
+
+</CodeGroup>
+
+### `obb.fixedincome.mortgage_indices`
+
+Mortgage rate indices from FRED — primary mortgage rates from Optimal Blue including conforming and jumbo products.
+
+```python
+res = obb.fixedincome.mortgage_indices(
+    index="jumbo_30y,conforming_30y,conforming_15y",
+    provider="fred",
+)
+```
+
+---
+
+## Spreads
+
+### `obb.fixedincome.spreads.tcm`
+
+10-Year Treasury Constant Maturity minus selected Treasury Constant Maturity — a standard measure of yield curve slope.
+
+```python
+res = obb.fixedincome.spreads.tcm(maturity="2y", provider="fred")
+```
+
+### `obb.fixedincome.spreads.tcm_effr`
+
+Selected Treasury Constant Maturity minus the Federal Funds Rate — measures the premium of Treasuries over the policy rate.
+
+```python
+res = obb.fixedincome.spreads.tcm_effr(maturity="10y", provider="fred")
+```
+
+### `obb.fixedincome.spreads.treasury_effr`
+
+Selected Treasury Bill minus Federal Funds Rate — short-end spread of Treasury bills relative to the policy rate.
+
+```python
+res = obb.fixedincome.spreads.treasury_effr(maturity="6m", provider="fred")
+```

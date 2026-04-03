@@ -1,0 +1,209 @@
+---
+title: "Installation"
+description: "Install OpenBB, optional extensions, the CLI, and configure your environment."
+keywords: ["openbb", "install", "pip", "python", "extensions", "cli", "api keys"]
+---
+
+## Requirements
+
+- Python `>=3.10,<4`
+- pip
+
+## Standard installation
+
+Install the `openbb` package from PyPI. This includes the core infrastructure, all standard asset-class extensions, and the default provider set (yfinance, FMP, Intrinio, FRED, SEC, OECD, and more).
+
+```bash
+pip install openbb
+```
+
+Verify the installation:
+
+```python
+from openbb import obb
+print(obb.coverage.providers)
+```
+
+## Install with all community extensions
+
+To include all optional community providers and analytics extensions, use the `all` extra:
+
+```bash
+pip install "openbb[all]"
+```
+
+This adds the full set of community providers (Alpha Vantage, CBOE, ECB, Finra, Finviz, Nasdaq, Seeking Alpha, TMX, Tradier, WSJ, Deribit, Biztoc, Stockgrid, Multpl, Fama-French) plus the charting, econometrics, quantitative, technical, and MCP server extensions.
+
+## Optional extras
+
+Install individual extras to add specific capabilities without pulling in the full `all` bundle.
+
+<Tabs>
+  <Tab title="Analytics">
+    | Extra | Package | Description |
+    |-------|---------|-------------|
+    | `charting` | `openbb-charting ^2.5.1` | Interactive charts via PyWry |
+    | `technical` | `openbb-technical ^1.6.1` | Technical analysis indicators |
+    | `quantitative` | `openbb-quantitative ^1.6.1` | Quantitative analysis tools |
+    | `econometrics` | `openbb-econometrics ^1.7.1` | Econometric models and tests |
+
+    ```bash
+    pip install "openbb[charting]"
+    pip install "openbb[technical]"
+    pip install "openbb[quantitative]"
+    pip install "openbb[econometrics]"
+    ```
+  </Tab>
+  <Tab title="AI / MCP">
+    | Extra | Package | Description |
+    |-------|---------|-------------|
+    | `mcp_server` | `openbb-mcp-server ^1.4.0` | Model Context Protocol server for AI agents |
+
+    ```bash
+    pip install "openbb[mcp_server]"
+    ```
+
+    After installation, start the MCP server with:
+
+    ```bash
+    openbb-mcp
+    ```
+  </Tab>
+  <Tab title="Community providers">
+    | Extra | Package | Description |
+    |-------|---------|-------------|
+    | `alpha_vantage` | `openbb-alpha-vantage ^1.6.0` | Alpha Vantage equity and macro data |
+    | `biztoc` | `openbb-biztoc ^1.6.0` | BizToc financial news |
+    | `cboe` | `openbb-cboe ^1.6.0` | CBOE options and market data |
+    | `deribit` | `openbb-deribit ^1.2.0` | Deribit crypto derivatives |
+    | `ecb` | `openbb-ecb ^1.6.0` | European Central Bank data |
+    | `famafrench` | `openbb-famafrench ^1.2.0` | Fama-French factor data |
+    | `finra` | `openbb-finra ^1.6.0` | FINRA regulatory data |
+    | `finviz` | `openbb-finviz ^1.5.0` | Finviz screener data |
+    | `multpl` | `openbb-multpl ^1.3.0` | Multpl.com valuation ratios |
+    | `nasdaq` | `openbb-nasdaq ^1.6.1` | Nasdaq Data Link |
+    | `seeking_alpha` | `openbb-seeking-alpha ^1.6.0` | Seeking Alpha news and analysis |
+    | `stockgrid` | `openbb-stockgrid ^1.6.0` | Dark pool and options flow data |
+    | `tmx` | `openbb-tmx ^1.5.0` | Toronto Stock Exchange data |
+    | `tradier` | `openbb-tradier ^1.5.0` | Tradier brokerage data |
+    | `wsj` | `openbb-wsj ^1.6.0` | Wall Street Journal market data |
+
+    ```bash
+    pip install "openbb[ecb]"
+    pip install "openbb[cboe,deribit,tradier]"
+    ```
+  </Tab>
+</Tabs>
+
+## CLI installation
+
+The OpenBB CLI provides an interactive terminal interface for exploring financial data without writing Python code.
+
+```bash
+pip install openbb-cli
+```
+
+Launch the CLI:
+
+```bash
+openbb
+```
+
+<Note>
+`openbb-cli` installs `openbb[all]` as a dependency, so you get the full extension set automatically.
+</Note>
+
+## Environment setup
+
+### API credentials
+
+Most endpoints work without any configuration using `yfinance`. To use providers that require API keys, create the credentials file:
+
+```bash
+mkdir -p ~/.openbb_platform
+```
+
+```json ~/.openbb_platform/user_settings.json
+{
+  "credentials": {
+    "fmp_api_key": "YOUR_FMP_KEY",
+    "intrinio_api_key": "YOUR_INTRINIO_KEY",
+    "tiingo_token": "YOUR_TIINGO_TOKEN",
+    "fred_api_key": "YOUR_FRED_KEY",
+    "benzinga_api_key": "YOUR_BENZINGA_KEY",
+    "tradingeconomics_api_key": "YOUR_TE_KEY",
+    "nasdaq_api_key": "YOUR_NASDAQ_KEY",
+    "seeking_alpha_cookie": "YOUR_SA_COOKIE",
+    "alpha_vantage_api_key": "YOUR_AV_KEY"
+  }
+}
+```
+
+Credentials can also be set as environment variables. Each key follows the pattern `OPENBB_<PROVIDER>_<KEY_NAME>` in uppercase.
+
+```bash
+export OPENBB_FMP_API_KEY="YOUR_FMP_KEY"
+export OPENBB_FRED_API_KEY="YOUR_FRED_KEY"
+```
+
+See [Credentials](/concepts/credentials) for the complete list of provider credential keys.
+
+### Preferences
+
+Additional settings — such as the default provider for each command and output preferences — can be added to the same `user_settings.json` file under a `"preferences"` key.
+
+## Development installation
+
+To contribute to OpenBB or build extensions against the source code:
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/OpenBB-finance/OpenBB.git
+    cd OpenBB
+    ```
+  </Step>
+  <Step title="Install the core package in editable mode">
+    ```bash
+    pip install -e openbb_platform/core
+    ```
+  </Step>
+  <Step title="Install the full platform with all extensions">
+    ```bash
+    pip install -e "openbb_platform[all]"
+    ```
+  </Step>
+  <Step title="Rebuild the Python interface">
+    After installing or modifying extensions, rebuild the static interface:
+
+    ```bash
+    python -c "import openbb; openbb.build()"
+    ```
+
+    Or use the CLI command:
+
+    ```bash
+    openbb-build
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+After any change to provider or extension packages in a development installation, run `openbb-build` to regenerate the `obb` interface. Without this step, new endpoints will not appear on the `obb` object.
+</Warning>
+
+## Verify your installation
+
+```python
+from openbb import obb
+
+# List all registered providers
+print(obb.coverage.providers)
+
+# List all available commands
+print(dir(obb.equity))
+
+# Fetch data — no API key required
+result = obb.equity.price.historical("AAPL")
+print(result.to_dataframe().head())
+```

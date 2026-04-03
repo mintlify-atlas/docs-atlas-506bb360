@@ -1,0 +1,191 @@
+---
+title: "CLI"
+description: "Use OpenBB from the terminal with an interactive REPL, tab completion, and path-based navigation across all installed extensions."
+keywords: ["cli", "command line", "openbb cli", "terminal", "repl", "tab completion"]
+---
+
+The OpenBB CLI is an interactive terminal interface that wraps the OpenBB Platform. Navigate menus, fetch data, and run routine scripts — all from your terminal.
+
+## Installation
+
+```bash
+pip install openbb-cli
+```
+
+## Launching the CLI
+
+<CodeGroup>
+
+```bash openbb command
+openbb
+```
+
+```bash Python module
+python -m openbb_cli
+```
+
+</CodeGroup>
+
+Both commands print `Loading...` and then open the interactive prompt.
+
+### Launch flags
+
+| Flag | Description |
+|---|---|
+| `--dev` | Launch in developer mode with additional logging. |
+| `--debug` | Enable debug-level output for troubleshooting. |
+
+```bash
+openbb --dev
+openbb --debug
+```
+
+## Navigating menus
+
+The CLI uses a path-like navigation model. Type a menu path to move into it, or call a command directly from the root:
+
+```
+(openbb) /equity/price/historical --symbol AAPL --provider fmp
+```
+
+You can also navigate step by step:
+
+```
+(openbb) /equity
+(equity) /price
+(equity/price) historical --symbol AAPL --provider fmp
+```
+
+Use `..` to go up one level:
+
+```
+(equity/price) ..
+(equity) 
+```
+
+Use `/` to return to the root:
+
+```
+(equity/price) /
+(openbb)
+```
+
+## Tab completion
+
+Press `Tab` to complete commands, menu paths, and parameter names. Double-tap `Tab` to list all available options at the current level.
+
+```
+(openbb) /equity/price/  <Tab>
+historical   nbbo   performance   quote
+```
+
+## Example session
+
+```
+$ openbb
+Loading...
+
+(openbb) /equity/price/historical --symbol AAPL --provider fmp --start_date 2024-01-01
+                      open       high        low      close     volume
+date
+2024-01-02  185.009995  185.089996  182.529999  185.199997   79403900
+2024-01-03  184.190002  185.720001  183.820007  184.399994   55754100
+...
+
+(openbb) /equity/fundamental/balance --symbol AAPL --provider intrinio
+...
+
+(openbb) /economy/indicators --provider fred
+...
+
+(openbb) quit
+```
+
+## Available menu paths
+
+The available menus depend on which extensions you have installed. Common paths include:
+
+<AccordionGroup>
+
+<Accordion title="Equity">
+
+| Path | Description |
+|---|---|
+| `/equity/price/historical` | Historical OHLCV price data. |
+| `/equity/price/quote` | Latest quote. |
+| `/equity/price/performance` | Price performance over various periods. |
+| `/equity/fundamental/balance` | Balance sheet statements. |
+| `/equity/estimates` | Analyst estimates and price targets. |
+| `/equity/ownership` | Institutional and insider ownership. |
+| `/equity/screener` | Screen stocks by criteria. |
+| `/equity/search` | Search by symbol or company name. |
+
+</Accordion>
+
+<Accordion title="Economy">
+
+| Path | Description |
+|---|---|
+| `/economy/indicators` | Economic indicators (FRED and others). |
+| `/economy/gdp` | GDP data by country and period. |
+
+</Accordion>
+
+<Accordion title="Fixed income">
+
+| Path | Description |
+|---|---|
+| `/fixedincome/government/treasury_rates` | Government treasury rates. |
+
+</Accordion>
+
+<Accordion title="Crypto, ETF, and more">
+
+| Path | Description |
+|---|---|
+| `/crypto/price/historical` | Cryptocurrency historical prices. |
+| `/etf/search` | Search ETFs. |
+| `/derivatives/options` | Options data. |
+| `/news` | Financial news. |
+
+</Accordion>
+
+</AccordionGroup>
+
+## Configuration
+
+The CLI reads settings from `~/.openbb_platform/`. Key files:
+
+| File | Purpose |
+|---|---|
+| `user_settings.json` | API keys, default provider, and preferences. |
+| `system_settings.json` | System-level configuration. |
+
+Example `user_settings.json`:
+
+```json
+{
+  "credentials": {
+    "fmp_api_key": "YOUR_FMP_KEY",
+    "intrinio_api_key": "YOUR_INTRINIO_KEY"
+  },
+  "preferences": {
+    "data_directory": "~/OpenBBUserData",
+    "export_directory": "~/OpenBBUserData/exports"
+  }
+}
+```
+
+<Tip>
+Run `/settings` inside the CLI to view and update preferences interactively.
+</Tip>
+
+## Exporting data
+
+Append `--export` to any command to save results to a file:
+
+```
+(openbb) /equity/price/historical --symbol AAPL --provider fmp --export csv
+```
+
+Exported files are saved to the configured `export_directory` (default: `~/OpenBBUserData/exports`).

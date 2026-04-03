@@ -1,0 +1,262 @@
+---
+title: "Create a router extension"
+description: "Build a router extension that adds new commands and endpoints to the OpenBB Platform."
+keywords: ["router", "extension", "commands", "endpoints", "OBBject", "entry point"]
+---
+
+A router extension is a Python package that defines an OpenBB `Router`, registers command functions on it, and exposes the router via an entry point. Commands are available immediately from both the Python SDK (`obb.<prefix>.<command>()`) and the REST API (`GET /api/v1/<prefix>/<command>`).
+
+## Step 1: Create the Python package
+
+```
+openbb_my_extension/
+├── pyproject.toml
+└── openbb_my_extension/
+    ├── __init__.py
+    └── my_router.py
+```
+
+Declare `openbb-core` as a dependency and register the router entry point:
+
+```toml pyproject.toml
+[tool.poetry]
+name = "openbb-my-extension"
+version = "0.1.0"
+description = "My custom OpenBB router extension."
+packages = [{ include = "openbb_my_extension" }]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+openbb-core = "^1.0.0"
+
+[tool.poetry.plugins."openbb_router_extension"]
+my_extension = "openbb_my_extension.my_router:router"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+```
+
+## Step 2: Create the router
+
+Use `Router(prefix="/my_extension")` to set the URL prefix for all commands in this router:
+
+```python openbb_my_extension/my_router.py
+from openbb_core.app.router import Router
+
+router = Router(prefix="/my_extension", description="My extension commands.")
+```
+
+The `prefix` becomes the top-level namespace in both the Python SDK and the API path.
+
+## Step 3: Define commands
+
+Use the `@router.command` decorator to define an endpoint. Commands that fetch provider data follow a fixed signature — the platform uses dependency injection to populate `provider_choices`, `standard_params`, and `extra_params` from the registered providers at runtime.
+
+```python openbb_my_extension/my_router.py
+from openbb_core.app.model.command_context import CommandContext
+from openbb_core.app.model.obbject import OBBject
+from openbb_core.app.provider_interface import (
+    ExtraParams,
+    ProviderChoices,
+    StandardParams,
+)
+from openbb_core.app.query import Query
+from openbb_core.app.router import Router
+
+router = Router(prefix="/my_extension", description="My extension commands.")
+
+
+@router.command(model="EquityHistorical")
+async def historical(
+    cc: CommandContext,
+    provider_choices: ProviderChoices,
+    standard_params: StandardParams,
+    extra_params: ExtraParams,
+) -> OBBject:
+    """Get historical price data for a given stock."""
+    return await OBBject.from_query(Query(**locals()))
+```
+
+The `model` argument must match a key in one of the installed provider's `fetcher_dict`. The platform resolves which providers support the model and injects them into `provider_choices` automatically. You do not need to write any data-fetching logic inside the command function itself.
+
+### Command signature breakdown
+
+| Parameter | Type | Description |
+|---|---|---|
+| `cc` | `CommandContext` | User and system settings (API keys, preferences). Passed through to the fetcher. |
+| `provider_choices` | `ProviderChoices` | The list of providers that implement the named model. Populated via dependency injection. |
+| `standard_params` | `StandardParams` | Parameters shared across all providers for this model (e.g. `symbol`, `start_date`). |
+| `extra_params` | `ExtraParams` | Provider-specific parameters not in the standard model. |
+
+`OBBject.from_query(Query(**locals()))` collects all local variables (the four parameters above) into a `Query` object and dispatches it through the TET pipeline.
+
+## Step 4: Add examples
+
+Use `APIEx` to attach parameter examples to a command. Examples are surfaced in the REST API docs and the interactive Python reference:
+
+```python openbb_my_extension/my_router.py
+from openbb_core.app.model.example import APIEx
+
+@router.command(
+    model="EquityHistorical",
+    examples=[
+        APIEx(parameters={"symbol": "AAPL", "provider": "fmp"}),
+        APIEx(parameters={"symbol": "AAPL", "interval": "1d", "provider": "intrinio"}),
+    ],
+)
+async def historical(
+    cc: CommandContext,
+    provider_choices: ProviderChoices,
+    standard_params: StandardParams,
+    extra_params: ExtraParams,
+) -> OBBject:
+    """Get historical price data for a given stock."""
+    return await OBBject.from_query(Query(**locals()))
+```
+
+## Step 5: Organize with sub-routers
+
+For larger extensions, split commands into sub-routers and include them in a parent router. This mirrors the structure used by the built-in `openbb-equity` extension:
+
+<CodeGroup>
+
+```python openbb_my_extension/price/price_router.py
+from openbb_core.app.model.command_context import CommandContext
+from openbb_core.app.model.example import APIEx
+from openbb_core.app.model.obbject import OBBject
+from openbb_core.app.provider_interface import (
+    ExtraParams,
+    ProviderChoices,
+    StandardParams,
+)
+from openbb_core.app.query import Query
+from openbb_core.app.router import Router
+
+router = Router(prefix="/price")
+
+
+@router.command(
+    model="EquityHistorical",
+    examples=[APIEx(parameters={"symbol": "AAPL", "provider": "fmp"})],
+)
+async def historical(
+    cc: CommandContext,
+    provider_choices: ProviderChoices,
+    standard_params: StandardParams,
+    extra_params: ExtraParams,
+) -> OBBject:
+    """Get historical price data for a given stock."""
+    return await OBBject.from_query(Query(**locals()))
+
+
+@router.command(
+    model="EquityQuote",
+    examples=[APIEx(parameters={"symbol": "AAPL", "provider": "fmp"})],
+)
+async def quote(
+    cc: CommandContext,
+    provider_choices: ProviderChoices,
+    standard_params: StandardParams,
+    extra_params: ExtraParams,
+) -> OBBject:
+    """Get the latest quote for a given stock."""
+    return await OBBject.from_query(Query(**locals()))
+```
+
+```python openbb_my_extension/my_router.py
+from openbb_core.app.router import Router
+
+from openbb_my_extension.price.price_router import router as price_router
+
+router = Router(prefix="/my_extension", description="My extension commands.")
+
+# Mount the sub-router — commands are accessible at /my_extension/price/historical, etc.
+router.include_router(price_router)
+```
+
+</CodeGroup>
+
+`router.include_router` mounts the sub-router's commands under the parent prefix. The resulting paths are:
+
+- `obb.my_extension.price.historical()`
+- `obb.my_extension.price.quote()`
+
+## Step 6: Register the entry point
+
+The entry point in `pyproject.toml` tells the platform where to find the `Router` instance:
+
+```toml pyproject.toml
+[tool.poetry.plugins."openbb_router_extension"]
+my_extension = "openbb_my_extension.my_router:router"
+```
+
+Install the package and rebuild:
+
+```bash
+pip install -e .
+python -c "import openbb; openbb.build()"
+```
+
+Your commands are now available:
+
+```python
+from openbb import obb
+
+# Python SDK
+result = obb.my_extension.price.historical("AAPL", provider="fmp")
+
+# REST API (when running the server)
+# GET /api/v1/my_extension/price/historical?symbol=AAPL&provider=fmp
+```
+
+## Commands without a provider model
+
+Not every command needs to go through the provider system. If you are serving custom data (from a local file, an internal database, or a custom calculation), you can define a command without a `model` argument and handle the data fetching directly inside the function:
+
+```python openbb_my_extension/my_router.py
+from typing import List
+
+from openbb_core.app.model.obbject import OBBject
+from openbb_core.app.router import Router
+from openbb_core.provider.abstract.data import Data
+from pydantic import Field
+
+router = Router(prefix="/my_extension")
+
+
+class MySummaryData(Data):
+    """Summary record."""
+    label: str = Field(description="Category label.")
+    value: float = Field(description="Numeric value.")
+
+
+@router.command()
+async def summary() -> OBBject[List[MySummaryData]]:
+    """Return a static summary dataset."""
+    records = [
+        {"label": "alpha", "value": 1.23},
+        {"label": "beta", "value": 4.56},
+    ]
+    return OBBject(results=[MySummaryData.model_validate(r) for r in records])
+```
+
+<Note>
+Commands that skip the provider system will not appear in provider coverage reports and will not support the `provider` parameter. Use them for custom logic that is not data-source-dependent.
+</Note>
+
+## Full example: equity price router
+
+The built-in `openbb-equity` extension follows exactly this pattern. The price sub-router at `openbb_platform/extensions/equity/openbb_equity/price/price_router.py` defines four commands (`quote`, `nbbo`, `historical`, `performance`) and the parent `equity_router.py` includes it alongside eight other sub-routers:
+
+```python equity_router.py (abridged)
+from openbb_core.app.router import Router
+from openbb_equity.price.price_router import router as price_router
+# ... other sub-routers ...
+
+router = Router(prefix="", description="Equity market data.")
+router.include_router(price_router)
+# ... router.include_router(other_router) ...
+```
+
+The pattern scales from a single-file extension with two commands to a large multi-sub-router extension with dozens.

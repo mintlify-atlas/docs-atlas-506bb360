@@ -1,0 +1,205 @@
+---
+title: "Derivatives"
+description: "Access options chains, volatility surfaces, unusual options activity, futures curves, and instrument reference data from providers including CBOE, Intrinio, Deribit, and Yahoo Finance."
+keywords: ["derivatives", "options", "futures", "options chain", "implied volatility", "CBOE", "intrinio", "deribit", "yfinance"]
+---
+
+The `obb.derivatives` namespace provides data for the options and futures markets. Commands are split into two sub-namespaces: `options` for equity and index option chains and snapshots, and `futures` for commodity, financial, and crypto futures.
+
+<CardGroup cols={2}>
+  <Card title="Options" icon="layer-group" href="#options">
+    Chains, volatility surfaces, unusual activity, and market snapshots
+  </Card>
+  <Card title="Futures" icon="calendar" href="#futures">
+    Historical prices, term structure, instrument info, and statistics
+  </Card>
+</CardGroup>
+
+---
+
+## Options
+
+### `obb.derivatives.options.chains`
+
+Get the complete options chain for a ticker — all expirations, strikes, calls, and puts with greeks and market data where available.
+
+<CodeGroup>
+
+```python Current chain — Intrinio
+res = obb.derivatives.options.chains(symbol="AAPL", provider="intrinio")
+```
+
+```python Historical end-of-day chain
+res = obb.derivatives.options.chains(
+    symbol="AAPL",
+    date="2023-01-25",
+    provider="intrinio",
+)
+```
+
+```python CBOE
+res = obb.derivatives.options.chains(symbol="AAPL", provider="cboe")
+```
+
+</CodeGroup>
+
+<Tip>
+The `chains` endpoint is the primary input for `obb.derivatives.options.surface`. Pass `data.results` directly to the surface command.
+</Tip>
+
+### `obb.derivatives.options.surface`
+
+Filter and process options chains data to build a volatility surface. Accepts chains output, a pandas DataFrame, or a list of dictionaries.
+
+<CodeGroup>
+
+```python Implied volatility surface
+data = obb.derivatives.options.chains("AAPL", provider="cboe")
+surface = obb.derivatives.options.surface(
+    data=data.results,
+    moneyness=20,
+    dte_min=10,
+    dte_max=60,
+    chart=True,
+)
+surface.show()
+```
+
+```python Open interest surface — puts only
+data = obb.derivatives.options.chains("SPY", provider="cboe")
+surface = obb.derivatives.options.surface(
+    data=data.results,
+    option_type="puts",
+    oi=True,
+)
+```
+
+</CodeGroup>
+
+<AccordionGroup>
+  <Accordion title="Surface parameters">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `data` | list or Data | required | Options chains data |
+| `target` | str | `"implied_volatility"` | Field to use as the z-axis |
+| `underlying_price` | float | None | Required if not in the data |
+| `option_type` | str | `"otm"` | One of: `otm`, `itm`, `calls`, `puts` |
+| `dte_min` | int | None | Minimum days to expiration |
+| `dte_max` | int | None | Maximum days to expiration |
+| `moneyness` | float | None | Percent moneyness window (0–100) |
+| `strike_min` | float | None | Minimum strike price filter |
+| `strike_max` | float | None | Maximum strike price filter |
+| `oi` | bool | `False` | Filter to options with open interest only |
+| `volume` | bool | `False` | Filter to options with volume only |
+
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+`chart=True` requires the `openbb-charting` package. The surface renders a 3D plot with expiration on one axis and strike on the other.
+</Note>
+
+### `obb.derivatives.options.unusual`
+
+Unusual options activity for a ticker — large or atypical trades that may signal directional positioning.
+
+```python
+res = obb.derivatives.options.unusual(symbol="TSLA", provider="intrinio")
+```
+
+### `obb.derivatives.options.snapshots`
+
+A snapshot of the entire options market universe — current prices and greeks across all active contracts.
+
+```python
+res = obb.derivatives.options.snapshots(provider="intrinio")
+```
+
+---
+
+## Futures
+
+### `obb.derivatives.futures.historical`
+
+Historical futures prices by symbol, with support for specifying contract expiration month.
+
+<CodeGroup>
+
+```python E-mini S&P 500
+res = obb.derivatives.futures.historical(symbol="ES", provider="yfinance")
+```
+
+```python Multiple symbols
+res = obb.derivatives.futures.historical(
+    symbol="ES,NQ",
+    provider="yfinance",
+)
+```
+
+```python Specific expiration
+res = obb.derivatives.futures.historical(
+    symbol="ES",
+    provider="yfinance",
+    expiration="2025-12",
+)
+```
+
+</CodeGroup>
+
+### `obb.derivatives.futures.curve`
+
+Futures term structure (futures curve) — current or historical settlement prices across contract expirations.
+
+<CodeGroup>
+
+```python VIX futures curve — CBOE, historical date
+res = obb.derivatives.futures.curve(
+    symbol="VX",
+    provider="cboe",
+    date="2024-06-25",
+)
+```
+
+```python Natural gas futures curve
+res = obb.derivatives.futures.curve(
+    symbol="NG",
+    provider="yfinance",
+)
+```
+
+</CodeGroup>
+
+### `obb.derivatives.futures.instruments`
+
+Reference data for all available futures instruments from a provider. Useful for discovering available symbols and contract specs.
+
+```python
+res = obb.derivatives.futures.instruments(provider="deribit")
+```
+
+### `obb.derivatives.futures.info`
+
+Current trading statistics for specific futures contract symbols — open interest, funding rates, mark price, and more.
+
+<CodeGroup>
+
+```python BTC perpetual stats
+res = obb.derivatives.futures.info(provider="deribit", symbol="BTC")
+```
+
+```python SOL/USDC perpetual
+res = obb.derivatives.futures.info(
+    provider="deribit",
+    symbol="SOL_USDC-PERPETUAL",
+)
+```
+
+```python Multiple contracts
+res = obb.derivatives.futures.info(
+    provider="deribit",
+    symbol="BTC,ETH",
+)
+```
+
+</CodeGroup>

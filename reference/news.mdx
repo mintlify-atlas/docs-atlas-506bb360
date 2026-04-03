@@ -1,0 +1,307 @@
+---
+title: "News"
+description: "Fetch financial news for companies and global markets using the obb.news namespace."
+---
+
+The `obb.news` namespace provides two commands for retrieving financial news: `obb.news.world` for global market news and `obb.news.company` for news about one or more specific companies.
+
+<Columns cols={2}>
+  <Card title="obb.news.world" icon="globe">
+    Global market news from multiple providers. Filter by date range, topic, or source.
+  </Card>
+  <Card title="obb.news.company" icon="building">
+    Company-specific news filtered by ticker symbol. Supports multiple symbols and date ranges.
+  </Card>
+</Columns>
+
+---
+
+## World news
+
+Fetches global financial news headlines and articles.
+
+```python
+from openbb import obb
+
+news = obb.news.world(provider="benzinga", limit=20)
+df = news.to_df()
+print(df[["date", "title", "source"]].head())
+```
+
+### Parameters
+
+<ParamField path="provider" type="string" required>
+  Data provider. Supported values include `benzinga`, `biztoc`, `fmp`, `intrinio`, `tiingo`.
+</ParamField>
+
+<ParamField path="limit" type="number" default="20">
+  Maximum number of news articles to return.
+</ParamField>
+
+<ParamField path="start_date" type="string">
+  Start date for the news query in `YYYY-MM-DD` format.
+</ParamField>
+
+<ParamField path="end_date" type="string">
+  End date for the news query in `YYYY-MM-DD` format.
+</ParamField>
+
+### Provider-specific parameters
+
+Some parameters are only available for specific providers.
+
+<AccordionGroup>
+  <Accordion title="benzinga">
+    ```python
+    # Get full articles (default) or headlines only
+    news = obb.news.world(provider="benzinga", display="headline", limit=50)
+
+    # Filter by topic
+    news = obb.news.world(provider="benzinga", topics="finance")
+    ```
+
+    **Extra parameters:**
+    - `display` — `full` (default) or `headline`
+    - `topics` — Filter by topic string (e.g., `"finance"`, `"markets"`)
+  </Accordion>
+  <Accordion title="biztoc">
+    ```python
+    # Filter articles by a search term
+    news = obb.news.world(provider="biztoc", term="apple")
+    ```
+
+    **Extra parameters:**
+    - `term` — Search term to filter articles
+  </Accordion>
+  <Accordion title="tiingo">
+    ```python
+    # Filter by original publication source
+    news = obb.news.world(provider="tiingo", source="bloomberg")
+    ```
+
+    **Extra parameters:**
+    - `source` — Publication source slug (e.g., `"bloomberg"`, `"reuters"`)
+  </Accordion>
+  <Accordion title="intrinio">
+    ```python
+    # Get up to 100 articles with a date range
+    news = obb.news.world(
+        provider="intrinio",
+        limit=100,
+        start_date="2024-02-01",
+        end_date="2024-02-07",
+    )
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Company news
+
+Fetches news for one or more companies identified by ticker symbol.
+
+```python
+news = obb.news.company(
+    symbol="AAPL",
+    provider="benzinga",
+    limit=20,
+)
+df = news.to_df()
+print(df[["date", "title", "source"]].head())
+```
+
+### Parameters
+
+<ParamField path="symbol" type="string" required>
+  Ticker symbol or comma-separated list of symbols (e.g., `"AAPL"` or `"AAPL,TSLA"`).
+</ParamField>
+
+<ParamField path="provider" type="string" required>
+  Data provider. Supported values include `benzinga`, `fmp`, `intrinio`, `yfinance`.
+</ParamField>
+
+<ParamField path="limit" type="number" default="20">
+  Maximum number of articles to return.
+</ParamField>
+
+<ParamField path="start_date" type="string">
+  Start date in `YYYY-MM-DD` format.
+</ParamField>
+
+<ParamField path="end_date" type="string">
+  End date in `YYYY-MM-DD` format.
+</ParamField>
+
+### Provider-specific parameters
+
+<AccordionGroup>
+  <Accordion title="benzinga">
+    ```python
+    # Headlines only for a symbol
+    news = obb.news.company(
+        symbol="AAPL",
+        provider="benzinga",
+        display="headline",
+    )
+
+    # Query by ISIN instead of symbol
+    news = obb.news.company(
+        symbol="NVDA",
+        provider="benzinga",
+        isin="US0378331005",
+    )
+    ```
+
+    **Extra parameters:**
+    - `display` — `full` (default) or `headline`
+    - `isin` — International Securities Identification Number
+  </Accordion>
+  <Accordion title="fmp">
+    ```python
+    # Get news for multiple symbols
+    news = obb.news.company(
+        symbol="AAPL,TSLA",
+        provider="fmp",
+    )
+    ```
+  </Accordion>
+  <Accordion title="intrinio">
+    ```python
+    # Date range query
+    news = obb.news.company(
+        symbol="AAPL",
+        provider="intrinio",
+        start_date="2024-02-01",
+        end_date="2024-02-07",
+        limit=100,
+    )
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## OBBject result structure
+
+Both commands return an `OBBject`. The `results` field contains a list of news items.
+
+```python
+news = obb.news.company(symbol="AAPL", provider="benzinga")
+
+# Access the list of results
+items = news.results
+
+# Inspect the first item
+first = items[0]
+print(first.date)
+print(first.title)
+print(first.text)
+print(first.url)
+
+# Convert to DataFrame
+df = news.to_df()
+```
+
+Standard fields available across all providers:
+
+<ResponseField name="date" type="string">
+  Publication date and time.
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Article headline.
+</ResponseField>
+
+<ResponseField name="text" type="string">
+  Article body or summary text.
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  Link to the original article.
+</ResponseField>
+
+<ResponseField name="source" type="string">
+  Publication source name.
+</ResponseField>
+
+<Note>
+  Additional fields vary by provider. Use `news.to_df().columns.tolist()` to inspect all available fields for a given provider response.
+</Note>
+
+---
+
+## Complete workflow example
+
+```python
+from openbb import obb
+
+# --- World news ---
+# Get the 50 most recent global headlines from Benzinga
+world_news = obb.news.world(provider="benzinga", limit=50)
+df_world = world_news.to_df()
+print(df_world[["date", "title"]].head(10))
+
+# Filter world news by date range using Intrinio
+dated_news = obb.news.world(
+    provider="intrinio",
+    start_date="2024-02-01",
+    end_date="2024-02-07",
+    limit=100,
+)
+
+# --- Company news ---
+# Get recent news for Apple
+aapl_news = obb.news.company(
+    symbol="AAPL",
+    provider="benzinga",
+    limit=20,
+)
+df_aapl = aapl_news.to_df()
+
+# Get news for multiple companies
+multi_news = obb.news.company(
+    symbol="AAPL,MSFT,GOOGL",
+    provider="fmp",
+    limit=30,
+)
+df_multi = multi_news.to_df()
+
+# Filter by date range
+historical_news = obb.news.company(
+    symbol="NVDA",
+    provider="intrinio",
+    start_date="2024-01-01",
+    end_date="2024-03-31",
+)
+df_historical = historical_news.to_df()
+print(df_historical[["date", "title", "source"]])
+```
+
+---
+
+## Available providers
+
+<AccordionGroup>
+  <Accordion title="World news providers">
+    | Provider | `provider=` value | Notes |
+    |----------|-------------------|-------|
+    | Benzinga | `benzinga` | Supports topic and display filters |
+    | BizToc | `biztoc` | Supports keyword search via `term` |
+    | FMP | `fmp` | Financial Modeling Prep |
+    | Intrinio | `intrinio` | Supports date range filtering |
+    | Tiingo | `tiingo` | Supports source filtering |
+  </Accordion>
+  <Accordion title="Company news providers">
+    | Provider | `provider=` value | Notes |
+    |----------|-------------------|-------|
+    | Benzinga | `benzinga` | Supports ISIN lookup and display filter |
+    | FMP | `fmp` | Supports multiple symbols in one call |
+    | Intrinio | `intrinio` | Supports date range filtering |
+    | Yahoo Finance | `yfinance` | No API key required |
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Most providers require credentials. Set your API keys using `obb.account.login()` or by setting environment variables. See the [credentials guide](/concepts/credentials) for details.
+</Tip>

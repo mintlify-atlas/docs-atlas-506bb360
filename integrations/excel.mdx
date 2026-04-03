@@ -1,0 +1,99 @@
+---
+title: "Excel integration"
+description: "Export OpenBB data to Excel using pandas, or feed live data into Excel via the REST API and Power Query."
+keywords: ['excel', 'export', 'pandas', 'power query', 'xlsx', 'spreadsheet']
+---
+
+OpenBB data can reach Excel in two ways: you can export a DataFrame to an `.xlsx` file from Python, or you can pull data directly into Excel using Power Query HTTP requests against the running REST API.
+
+For teams working in OpenBB Workspace, a native Excel add-in is also available at [pro.openbb.co](https://pro.openbb.co).
+
+## Export from Python to Excel
+
+Every OpenBB response object exposes a `to_dataframe()` method (also aliased as `to_df()`). Once you have a DataFrame, use pandas `to_excel` to write it to a file.
+
+### Basic export
+
+```python
+from openbb import obb
+
+# Fetch historical price data
+output = obb.equity.price.historical("AAPL")
+df = output.to_dataframe()
+
+# Write to Excel
+df.to_excel("aapl_price_history.xlsx")
+```
+
+### Export multiple sheets
+
+You can write several datasets into a single workbook using `pandas.ExcelWriter`:
+
+```python
+from openbb import obb
+import pandas as pd
+
+aapl_prices = obb.equity.price.historical("AAPL").to_dataframe()
+aapl_news = obb.news.company(symbols="AAPL").to_dataframe()
+aapl_ratios = obb.equity.fundamental.ratios("AAPL").to_dataframe()
+
+with pd.ExcelWriter("aapl_report.xlsx", engine="openpyxl") as writer:
+    aapl_prices.to_excel(writer, sheet_name="Price History")
+    aapl_news.to_excel(writer, sheet_name="News")
+    aapl_ratios.to_excel(writer, sheet_name="Fundamental Ratios")
+```
+
+<Note>
+  Install `openpyxl` if it is not already present in your environment: `pip install openpyxl`.
+</Note>
+
+## Pull live data via Power Query
+
+If you have the ODP REST API running locally, you can import data directly into Excel using Power Query without any Python code in Excel itself.
+
+<Steps>
+  <Step title="Start the API server">
+    ```bash
+    pip install "openbb[all]"
+    openbb-api
+    ```
+
+    The server starts at `http://127.0.0.1:6900`.
+  </Step>
+  <Step title="Open Power Query in Excel">
+    In Excel, go to **Data** → **Get Data** → **From Other Sources** → **From Web**.
+  </Step>
+  <Step title="Enter the endpoint URL">
+    Paste an API endpoint URL, for example:
+
+    ```
+    http://127.0.0.1:6900/api/v1/equity/price/historical?symbol=AAPL&provider=yfinance
+    ```
+
+    Power Query will fetch the JSON response and let you transform it into a table.
+  </Step>
+  <Step title="Load and refresh">
+    Click **Load** to import the data. Use **Refresh** (or set an automatic refresh interval) to update the data on demand.
+  </Step>
+</Steps>
+
+<Tip>
+  The full list of available REST endpoints and their parameters is documented in the interactive API explorer at `http://127.0.0.1:6900/docs` when the server is running.
+</Tip>
+
+## OpenBB Workspace Excel add-in
+
+OpenBB Workspace includes a native Excel add-in that connects your spreadsheets directly to the Workspace data layer without manual API calls or Python scripts.
+
+The add-in is available as part of the [OpenBB Workspace](https://pro.openbb.co) subscription. See the [Workspace documentation](https://docs.openbb.co/workspace) for setup instructions.
+
+## Related resources
+
+<CardGroup cols={2}>
+  <Card title="OpenBB Workspace" icon="table" href="/integrations/openbb-workspace">
+    Connect the ODP backend to the full Workspace UI, including the Excel add-in.
+  </Card>
+  <Card title="Python reference" icon="code" href="https://docs.openbb.co/python/reference">
+    Browse all available data endpoints that can be exported to Excel.
+  </Card>
+</CardGroup>
